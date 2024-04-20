@@ -20,9 +20,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.95"
+version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d32a725bc159af97c3e629873bb9f88fb8cf8a4867175f76dc987815ea07c83b"
+checksum = "17f6e324229dc011159fcc089755d1e2e216a90d43a7dea6853ca740b84f35e7"
 
 [[package]]
 name = "cfg-if"
@@ -113,15 +113,6 @@ name = "peek"
 version = "0.1.0"
 dependencies = [
  "mlua",
- "peek-lib",
-]
-
-[[package]]
-name = "peek-lib"
-version = "0.1.0"
-dependencies = [
- "mlua",
- "serde",
 ]
 
 [[package]]

@@ -1,2 +1,2 @@
-require("peek").nvim_get_current_buf()
+require("peek").create_window()
 vim.cmd("exit")

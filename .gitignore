@@ -1,2 +1,4 @@
-/target
+peek/target
+peek-lib/target
+target
 peek.so
