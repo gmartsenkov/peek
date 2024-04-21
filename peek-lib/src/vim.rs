@@ -13,7 +13,7 @@ pub enum Mode {
     #[serde(rename = "n")]
     Normal,
     #[serde(rename = "i")]
-    Insert
+    Insert,
 }
 
 #[allow(dead_code)]
@@ -53,6 +53,11 @@ impl<'a> Vim<'a> {
         func.call::<_, i32>((listed, scratch))
     }
 
+    pub fn nvim_win_close(&self, window: i32, force: bool) -> LuaResult<()> {
+        let func: Function = self.api.get("nvim_win_close").expect("nvim_win_close");
+        func.call((window, force))
+    }
+
     pub fn nvim_open_win(
         &self,
         buffer: i32,
@@ -67,13 +72,19 @@ impl<'a> Vim<'a> {
         func.call::<_, i32>((buffer, enter_window, self.lua.to_value(&opts).unwrap()))
     }
 
-    pub fn nvim_buf_set_keymap(&self, buffer: i32, mode: Mode, lhs: String, callback: Function) -> LuaResult<()> {
+    pub fn nvim_buf_set_keymap(
+        &self,
+        buffer: i32,
+        mode: Mode,
+        lhs: String,
+        callback: Function,
+    ) -> LuaResult<()> {
         let func: Function = self
             .api
             .get("nvim_buf_set_keymap")
             .expect("can't load nvim_set_keymap");
         let opts = self.lua.create_table()?;
         opts.set("callback", callback)?;
-        func.call((buffer, self.lua.to_value(&mode).unwrap(), lhs , "", opts))
+        func.call((buffer, self.lua.to_value(&mode).unwrap(), lhs, "", opts))
     }
 }
