@@ -25,5 +25,6 @@ pub fn create_window(lua: &Lua, _: ()) -> LuaResult<()> {
         Ok(())
     })?;
 
+    lua.load("vim.cmd('file Peek')").eval()?;
     vim.nvim_buf_set_keymap(buffer, vim::Mode::Normal, "ga".into(), rhs)
 }
