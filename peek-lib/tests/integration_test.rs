@@ -1,5 +1,5 @@
 use mlua::Lua;
-use peek_lib::Vim;
+use peek_lib::vim::Vim;
 
 #[test]
 fn test_nvim_get_current_buffer() {
