@@ -5,6 +5,7 @@ use serde::Serialize;
 #[allow(dead_code)]
 pub struct Vim<'a> {
     lua: &'a Lua,
+    vim: Table<'a>,
     api: Table<'a>,
 }
 
@@ -31,6 +32,14 @@ pub struct WindowOptions {
     pub split: Option<String>,
 }
 
+#[derive(Serialize)]
+pub struct HighlightOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fg: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bg: Option<String>,
+}
+
 impl mlua::UserData for WindowOptions {}
 
 impl<'a> BufferAttachOptions<'a> {
@@ -48,7 +57,7 @@ impl<'a> Vim<'a> {
         let globals = lua.globals();
         let vim: Table = globals.get("vim").expect("can't load vim");
         let api: Table = vim.get("api").expect("can't load api");
-        Vim { lua, api }
+        Vim { lua, api, vim }
     }
 
     pub fn nvim_get_current_buf(&self) -> LuaResult<i32> {
@@ -96,9 +105,60 @@ impl<'a> Vim<'a> {
         func.call((buffer, start, end, strict_indexing))
     }
 
+    pub fn nvim_buf_set_lines(
+        &self,
+        buffer: i32,
+        start: i32,
+        end: i32,
+        strict_indexing: bool,
+        replacement: Vec<String>,
+    ) -> LuaResult<()> {
+        let func: Function = self
+            .api
+            .get("nvim_buf_set_lines")
+            .expect("can't load nvim_buf_set_lines");
+
+        func.call((buffer, start, end, strict_indexing, replacement))
+    }
+
+    pub fn nvim_set_hl(
+        &self,
+        namespace: i32,
+        name: String,
+        opts: HighlightOptions,
+    ) -> LuaResult<()> {
+        let func: Function = self.api.get("nvim_set_hl").expect("can't load nvim_set_hl");
+
+        func.call((namespace, name, self.lua.to_value(&opts).unwrap()))
+    }
+
+    pub fn vim_schedule(&self, inner_func: Function) -> LuaResult<()> {
+        let func: Function = self.vim.get("schedule").expect("can't load vim.schedule");
+
+        func.call(inner_func)
+    }
+
     pub fn nvim_win_close(&self, window: i32, force: bool) -> LuaResult<()> {
         let func: Function = self.api.get("nvim_win_close").expect("nvim_win_close");
         func.call((window, force))
+    }
+
+    pub fn nvim_buf_set_var(&self, buffer: i32, name: String, value: LuaValue) -> LuaResult<()> {
+        let func: Function = self
+            .api
+            .get("nvim_buf_set_var")
+            .expect("can't load nvim_buf_set_var");
+
+        func.call((buffer, name, value))
+    }
+
+    pub fn nvim_buf_get_var<R: FromLuaMulti<'a>>(&self, buffer: i32, name: String) -> LuaResult<R> {
+        let func: Function = self
+            .api
+            .get("nvim_buf_get_var")
+            .expect("can't load nvim_buf_get_var");
+
+        func.call::<_, R>((buffer, name))
     }
 
     pub fn nvim_open_win(
