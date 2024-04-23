@@ -54,8 +54,18 @@ pub fn create_window(lua: &Lua, _: ()) -> LuaResult<()> {
     lua.load("vim.cmd('file Peek')").eval()?;
     vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(0))?;
     vim.nvim_buf_set_keymap(buffer, vim::Mode::Normal, "<ESC>".into(), rhs)?;
-    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<C-j>".into(), select_down.clone())?;
-    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<Down>".into(), select_down.clone())?;
+    vim.nvim_buf_set_keymap(
+        buffer,
+        vim::Mode::Insert,
+        "<C-j>".into(),
+        select_down.clone(),
+    )?;
+    vim.nvim_buf_set_keymap(
+        buffer,
+        vim::Mode::Insert,
+        "<Down>".into(),
+        select_down.clone(),
+    )?;
     vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<C-k>".into(), select_up.clone())?;
     vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<Up>".into(), select_up.clone())?;
     vim.nvim_set_hl(
@@ -77,15 +87,28 @@ pub fn create_window(lua: &Lua, _: ()) -> LuaResult<()> {
             let vim = Vim::new(lua);
             let lines = vim.nvim_buf_get_lines(buffer, 0, 1, false)?;
             let prompt = lines.first().unwrap();
-            let mut content : Vec<String> = Vec::new();
-            for n in 1..(prompt.len() + 1) {
-                content.push(format!("{n}                    "));
-            }
+            let command = std::process::Command::new("fd")
+                .arg(prompt)
+                .output()
+                .unwrap();
+            let search_results: Vec<String> = std::str::from_utf8(&command.stdout)
+                .unwrap()
+                .lines()
+                .map(|x| x.to_owned())
+                .take(10)
+                .collect();
+
             log::info!("{:?}", prompt);
 
             let callback = lua.create_function(move |lua, ()| {
                 let vim = Vim::new(lua);
-                vim.nvim_buf_set_lines(buffer, 1, -1, false, content.clone())
+                vim.nvim_buf_set_var(
+                    buffer,
+                    "peek_results".into(),
+                    lua.to_value(&search_results).unwrap(),
+                )?;
+                vim.nvim_buf_set_lines(buffer, 1, -1, false, search_results.clone())?;
+                Ok(())
             })?;
             vim.vim_schedule(callback)?;
 

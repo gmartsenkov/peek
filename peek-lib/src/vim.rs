@@ -90,16 +90,30 @@ impl<'a> Vim<'a> {
         func.call((buffer, send_buffer, opts.to_lua_table(self.lua)))
     }
 
-    pub fn nvim_buf_add_highlight(&self, buffer: i32, namespace: i32, hl_group: String, line: i32, col_start: i32, col_end: i32) -> LuaResult<i32> {
+    pub fn nvim_buf_add_highlight(
+        &self,
+        buffer: i32,
+        namespace: i32,
+        hl_group: String,
+        line: i32,
+        col_start: i32,
+        col_end: i32,
+    ) -> LuaResult<i32> {
         let func: Function = self
             .api
             .get("nvim_buf_add_highlight")
             .expect("can't load nvim_buf_add_highlight");
 
-        func.call::<_,i32>((buffer ,namespace, hl_group, line, col_start, col_end))
+        func.call::<_, i32>((buffer, namespace, hl_group, line, col_start, col_end))
     }
 
-    pub fn nvim_buf_clear_namespace(&self, buffer: i32, namespace: i32, line_start: i32, line_end: i32) -> LuaResult<()> {
+    pub fn nvim_buf_clear_namespace(
+        &self,
+        buffer: i32,
+        namespace: i32,
+        line_start: i32,
+        line_end: i32,
+    ) -> LuaResult<()> {
         let func: Function = self
             .api
             .get("nvim_buf_clear_namespace")
@@ -137,6 +151,23 @@ impl<'a> Vim<'a> {
             .expect("can't load nvim_buf_set_lines");
 
         func.call((buffer, start, end, strict_indexing, replacement))
+    }
+
+    pub fn nvim_buf_set_text(
+        &self,
+        buffer: i32,
+        start_row: i32,
+        start_col: i32,
+        end_row: i32,
+        end_col: i32,
+        replacement: Vec<String>
+    ) -> LuaResult<()> {
+        let func: Function = self
+            .api
+            .get("nvim_buf_set_text")
+            .expect("can't load nvim_buf_set_text");
+
+        func.call((buffer, start_row, start_col, end_row, end_col, replacement))
     }
 
     pub fn nvim_set_hl(
