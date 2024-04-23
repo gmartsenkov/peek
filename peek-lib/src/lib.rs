@@ -33,6 +33,8 @@ pub fn create_window(lua: &Lua, _: ()) -> LuaResult<()> {
         let cursor_position = vim.nvim_buf_get_var::<i32>(buffer, "peek_cursor".into())?;
         let next = cursor_position + 1;
         vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(next.into()))?;
+        vim.nvim_buf_clear_namespace(buffer, 101, 0, -1)?;
+        vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection".into(), next, 0, -1)?;
 
         Ok(())
     })?;
@@ -42,6 +44,8 @@ pub fn create_window(lua: &Lua, _: ()) -> LuaResult<()> {
         let cursor_position = vim.nvim_buf_get_var::<i32>(buffer, "peek_cursor".into())?;
         let next = std::cmp::max(cursor_position - 1, 0);
         vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(next.into()))?;
+        vim.nvim_buf_clear_namespace(buffer, 101, 0, -1)?;
+        vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection".into(), next, 0, -1)?;
 
         Ok(())
     })?;
@@ -50,13 +54,15 @@ pub fn create_window(lua: &Lua, _: ()) -> LuaResult<()> {
     lua.load("vim.cmd('file Peek')").eval()?;
     vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(0))?;
     vim.nvim_buf_set_keymap(buffer, vim::Mode::Normal, "<ESC>".into(), rhs)?;
-    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<C-j>".into(), select_down)?;
-    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<C-k>".into(), select_up)?;
+    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<C-j>".into(), select_down.clone())?;
+    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<Down>".into(), select_down.clone())?;
+    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<C-k>".into(), select_up.clone())?;
+    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<Up>".into(), select_up.clone())?;
     vim.nvim_set_hl(
         0,
         "PeekSelection".into(),
         vim::HighlightOptions {
-            bg: Some("red".into()),
+            bg: Some("purple".into()),
             fg: Some("white".into()),
         },
     )?;
@@ -70,12 +76,16 @@ pub fn create_window(lua: &Lua, _: ()) -> LuaResult<()> {
 
             let vim = Vim::new(lua);
             let lines = vim.nvim_buf_get_lines(buffer, 0, 1, false)?;
-            let prompt = lines.first();
+            let prompt = lines.first().unwrap();
+            let mut content : Vec<String> = Vec::new();
+            for n in 1..(prompt.len() + 1) {
+                content.push(format!("{n}                    "));
+            }
             log::info!("{:?}", prompt);
 
             let callback = lua.create_function(move |lua, ()| {
                 let vim = Vim::new(lua);
-                vim.nvim_buf_set_lines(buffer, 1, -1, false, lines.clone())
+                vim.nvim_buf_set_lines(buffer, 1, -1, false, content.clone())
             })?;
             vim.vim_schedule(callback)?;
 

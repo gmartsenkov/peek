@@ -90,6 +90,24 @@ impl<'a> Vim<'a> {
         func.call((buffer, send_buffer, opts.to_lua_table(self.lua)))
     }
 
+    pub fn nvim_buf_add_highlight(&self, buffer: i32, namespace: i32, hl_group: String, line: i32, col_start: i32, col_end: i32) -> LuaResult<i32> {
+        let func: Function = self
+            .api
+            .get("nvim_buf_add_highlight")
+            .expect("can't load nvim_buf_add_highlight");
+
+        func.call::<_,i32>((buffer ,namespace, hl_group, line, col_start, col_end))
+    }
+
+    pub fn nvim_buf_clear_namespace(&self, buffer: i32, namespace: i32, line_start: i32, line_end: i32) -> LuaResult<()> {
+        let func: Function = self
+            .api
+            .get("nvim_buf_clear_namespace")
+            .expect("can't load nvim_buf_clear_namespace");
+
+        func.call((buffer, namespace, line_start, line_end))
+    }
+
     pub fn nvim_buf_get_lines(
         &self,
         buffer: i32,
