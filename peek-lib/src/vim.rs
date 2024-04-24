@@ -21,6 +21,14 @@ pub enum Mode {
     Insert,
 }
 
+#[derive(Serialize)]
+pub struct BufferDeleteOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub force: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unload: Option<bool>,
+}
+
 #[allow(dead_code)]
 #[derive(Serialize)]
 pub struct WindowOptions {
@@ -160,7 +168,7 @@ impl<'a> Vim<'a> {
         start_col: i32,
         end_row: i32,
         end_col: i32,
-        replacement: Vec<String>
+        replacement: Vec<String>,
     ) -> LuaResult<()> {
         let func: Function = self
             .api
@@ -208,6 +216,15 @@ impl<'a> Vim<'a> {
             .expect("can't load nvim_buf_get_var");
 
         func.call::<_, R>((buffer, name))
+    }
+
+    pub fn nvim_buf_delete(&self, buffer: i32, opts: BufferDeleteOptions) -> LuaResult<()> {
+        let func: Function = self
+            .api
+            .get("nvim_buf_delete")
+            .expect("can't load nvim_buf_delete");
+
+        func.call((buffer, self.lua.to_value(&opts).unwrap()))
     }
 
     pub fn nvim_open_win(

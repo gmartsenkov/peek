@@ -1,3 +1,4 @@
+pub mod functions;
 pub mod vim;
 
 use log::LevelFilter;
@@ -23,51 +24,39 @@ pub fn create_window(lua: &Lua, _: ()) -> LuaResult<()> {
         },
     )?;
 
-    let rhs = lua.create_function(move |lua, ()| {
-        let vim = Vim::new(lua);
-        vim.nvim_win_close(win, true)
-    })?;
-
-    let select_down = lua.create_function(move |lua, ()| {
-        let vim = Vim::new(lua);
-        let cursor_position = vim.nvim_buf_get_var::<i32>(buffer, "peek_cursor".into())?;
-        let next = cursor_position + 1;
-        vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(next.into()))?;
-        vim.nvim_buf_clear_namespace(buffer, 101, 0, -1)?;
-        vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection".into(), next, 0, -1)?;
-
-        Ok(())
-    })?;
-
-    let select_up = lua.create_function(move |lua, ()| {
-        let vim = Vim::new(lua);
-        let cursor_position = vim.nvim_buf_get_var::<i32>(buffer, "peek_cursor".into())?;
-        let next = std::cmp::max(cursor_position - 1, 0);
-        vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(next.into()))?;
-        vim.nvim_buf_clear_namespace(buffer, 101, 0, -1)?;
-        vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection".into(), next, 0, -1)?;
-
-        Ok(())
-    })?;
-
     // Window/Buffer config
     lua.load("vim.cmd('file Peek')").eval()?;
     vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(0))?;
-    vim.nvim_buf_set_keymap(buffer, vim::Mode::Normal, "<ESC>".into(), rhs)?;
+    vim.nvim_buf_set_keymap(
+        buffer,
+        vim::Mode::Normal,
+        "<ESC>".into(),
+        functions::exit(lua, win, buffer),
+    )?;
     vim.nvim_buf_set_keymap(
         buffer,
         vim::Mode::Insert,
         "<C-j>".into(),
-        select_down.clone(),
+        functions::select_down(lua, buffer),
     )?;
     vim.nvim_buf_set_keymap(
         buffer,
         vim::Mode::Insert,
         "<Down>".into(),
-        select_down.clone(),
+        functions::select_down(lua, buffer),
     )?;
-    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<C-k>".into(), select_up.clone())?;
-    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<Up>".into(), select_up.clone())?;
+    vim.nvim_buf_set_keymap(
+        buffer,
+        vim::Mode::Insert,
+        "<C-k>".into(),
+        functions::select_up(lua, buffer),
+    )?;
+    vim.nvim_buf_set_keymap(
+        buffer,
+        vim::Mode::Insert,
+        "<Up>".into(),
+        functions::select_up(lua, buffer),
+    )?;
     vim.nvim_set_hl(
         0,
         "PeekSelection".into(),
