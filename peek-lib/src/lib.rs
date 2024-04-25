@@ -26,37 +26,13 @@ pub fn create_window(lua: &Lua, _: ()) -> LuaResult<()> {
 
     // Window/Buffer config
     lua.load("vim.cmd('file Peek')").eval()?;
+    lua.load("require('cmp').setup.buffer { enabled = false }").eval()?;
     vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(0))?;
-    vim.nvim_buf_set_keymap(
-        buffer,
-        vim::Mode::Normal,
-        "<ESC>".into(),
-        functions::exit(lua, win, buffer),
-    )?;
-    vim.nvim_buf_set_keymap(
-        buffer,
-        vim::Mode::Insert,
-        "<C-j>".into(),
-        functions::select_down(lua, buffer),
-    )?;
-    vim.nvim_buf_set_keymap(
-        buffer,
-        vim::Mode::Insert,
-        "<Down>".into(),
-        functions::select_down(lua, buffer),
-    )?;
-    vim.nvim_buf_set_keymap(
-        buffer,
-        vim::Mode::Insert,
-        "<C-k>".into(),
-        functions::select_up(lua, buffer),
-    )?;
-    vim.nvim_buf_set_keymap(
-        buffer,
-        vim::Mode::Insert,
-        "<Up>".into(),
-        functions::select_up(lua, buffer),
-    )?;
+    vim.nvim_buf_set_keymap(buffer, vim::Mode::Normal, "<ESC>".into(), functions::exit(lua, win, buffer))?;
+    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<C-j>".into(), functions::select_down(lua, buffer))?;
+    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<Down>".into(), functions::select_down(lua, buffer))?;
+    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<C-k>".into(), functions::select_up(lua, buffer))?;
+    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<Up>".into(), functions::select_up(lua, buffer))?;
     vim.nvim_set_hl(
         0,
         "PeekSelection".into(),
@@ -67,19 +43,22 @@ pub fn create_window(lua: &Lua, _: ()) -> LuaResult<()> {
     )?;
 
     let buff_attach_function = lua.create_function(
-        |lua, (_lines, buffer, _chaned_tick, first_line_changed): (String, i32, i32, i32)| {
+        move |lua, (_lines, buffer, _changed_tick, first_line_changed): (String, i32, bool, i32)| {
             // Only care about changes to the first line (ie. the prompt)
+            if first_line_changed > 0 {
+                return Ok(false);
+            }
+            log::info!("First line changed {:?}", first_line_changed);
+
+            let vim = Vim::new(lua);
+
             if first_line_changed != 0 {
                 return Ok(false);
             }
 
-            let vim = Vim::new(lua);
             let lines = vim.nvim_buf_get_lines(buffer, 0, 1, false)?;
             let prompt = lines.first().unwrap();
-            let command = std::process::Command::new("fd")
-                .arg(prompt)
-                .output()
-                .unwrap();
+            let command = std::process::Command::new("fd").arg(prompt).output().unwrap();
             let search_results: Vec<String> = std::str::from_utf8(&command.stdout)
                 .unwrap()
                 .lines()
@@ -91,12 +70,9 @@ pub fn create_window(lua: &Lua, _: ()) -> LuaResult<()> {
 
             let callback = lua.create_function(move |lua, ()| {
                 let vim = Vim::new(lua);
-                vim.nvim_buf_set_var(
-                    buffer,
-                    "peek_results".into(),
-                    lua.to_value(&search_results).unwrap(),
-                )?;
+                vim.nvim_buf_set_var(buffer, "peek_results".into(), lua.to_value(&search_results).unwrap())?;
                 vim.nvim_buf_set_lines(buffer, 1, -1, false, search_results.clone())?;
+
                 Ok(())
             })?;
             vim.vim_schedule(callback)?;
@@ -108,5 +84,5 @@ pub fn create_window(lua: &Lua, _: ()) -> LuaResult<()> {
     let buf_attach_options = vim::BufferAttachOptions {
         on_lines: Some(buff_attach_function),
     };
-    vim.nvim_buf_attach(buffer, true, buf_attach_options)
+    vim.nvim_buf_attach(buffer, false, buf_attach_options)
 }
