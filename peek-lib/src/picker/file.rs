@@ -11,12 +11,18 @@ struct File {
 
 pub fn filter(lua: &Lua) -> Function {
     lua.create_function(|lua, prompt: String| {
-        let command = std::process::Command::new("fd").arg(prompt).output().unwrap();
+        let command = std::process::Command::new("fd")
+            .arg("--type")
+            .arg("file")
+            .arg("--max-results")
+            .arg("500")
+            .arg(prompt)
+            .output()
+            .unwrap();
         let search_results: Vec<File> = std::str::from_utf8(&command.stdout)
             .unwrap()
             .lines()
             .map(|x| File { path: x.to_owned() })
-            .take(10)
             .collect();
         let result = lua.to_value(&search_results)?;
         Ok(result)
@@ -29,7 +35,7 @@ pub fn initial_data(lua: &Lua) -> Function {
         .unwrap()
 }
 
-pub fn render(lua: &Lua) -> Function {
+pub fn to_line(lua: &Lua) -> Function {
     lua.create_function(|lua, value: mlua::Value| {
         let data: File = lua.from_value(value)?;
         Ok(data.path)

@@ -83,6 +83,13 @@ impl<'a> Vim<'a> {
         func.call::<_, i32>(())
     }
 
+    pub fn bufnr(&self) -> LuaResult<i32> {
+        let fn_func: Table = self.vim.get("fn").expect("can't load fn");
+        let func: Function = fn_func.get("bufnr").expect("can't load vim.fn.bufnr");
+
+        func.call::<_, i32>(())
+    }
+
     pub fn nvim_create_buffer(&self, listed: bool, scratch: bool) -> LuaResult<i32> {
         let func: Function = self.api.get("nvim_create_buf").expect("can't load nvim_create_buf");
         func.call::<_, i32>((listed, scratch))
