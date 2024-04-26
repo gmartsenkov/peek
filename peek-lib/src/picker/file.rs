@@ -22,18 +22,8 @@ pub fn filter(lua: &Lua) -> Function {
 }
 
 pub fn initial_data(lua: &Lua) -> Function {
-    lua.create_function(|lua, ()| {
-        let command = std::process::Command::new("fd").output().unwrap();
-        let search_results: Vec<File> = std::str::from_utf8(&command.stdout)
-            .unwrap()
-            .lines()
-            .map(|x| File { path: x.to_owned() })
-            .take(10)
-            .collect();
-        let result = lua.to_value(&search_results)?;
-        Ok(result)
-    })
-    .unwrap()
+    lua.create_function(|lua, ()| filter(lua).call::<_, Vec<mlua::Value>>(""))
+        .unwrap()
 }
 
 pub fn render(lua: &Lua) -> Function {
