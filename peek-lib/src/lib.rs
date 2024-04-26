@@ -4,7 +4,7 @@ pub mod vim;
 
 use log::LevelFilter;
 use mlua::prelude::*;
-use vim::{Vim, WindowOptions};
+use vim::Vim;
 
 pub fn nvim_get_current_buf(lua: &Lua, _: ()) -> LuaResult<i32> {
     let vim = Vim::new(lua);
@@ -32,15 +32,11 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
 
     let vim = Vim::new(lua);
     let buffer = vim.nvim_create_buffer(false, true)?;
-    let win = vim.nvim_open_win(
-        buffer,
-        true,
-        WindowOptions {
-            width: None,
-            height: Some(15),
-            split: Some("below".into()),
-        },
-    )?;
+
+    lua.load("vim.cmd('bot sp')").eval()?;
+    let win = vim.win_get_id()?;
+    vim.nvim_win_set_height(win, 20)?;
+    vim.nvim_win_set_buf(win, buffer)?;
 
     // Window/Buffer config
     lua.load(format!("vim.cmd('file {}')", "File")).eval()?;

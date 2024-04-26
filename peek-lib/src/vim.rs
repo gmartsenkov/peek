@@ -76,9 +76,26 @@ impl<'a> Vim<'a> {
         func.call::<_, i32>(())
     }
 
+    pub fn win_get_id(&self) -> LuaResult<i32> {
+        let fn_func: Table = self.vim.get("fn").expect("can't load fn");
+        let func: Function = fn_func.get("win_getid").expect("can't load vim.fn.win_getid");
+
+        func.call::<_, i32>(())
+    }
+
     pub fn nvim_create_buffer(&self, listed: bool, scratch: bool) -> LuaResult<i32> {
         let func: Function = self.api.get("nvim_create_buf").expect("can't load nvim_create_buf");
         func.call::<_, i32>((listed, scratch))
+    }
+
+    pub fn nvim_win_set_buf(&self, window: i32, buffer: i32) -> LuaResult<()> {
+        let func: Function = self.api.get("nvim_win_set_buf").expect("nvim_win_set_buf");
+        func.call((window, buffer))
+    }
+
+    pub fn nvim_win_set_height(&self, window: i32, height: i32) -> LuaResult<()> {
+        let func: Function = self.api.get("nvim_win_set_height").expect("nvim_win_set_height");
+        func.call((window, height))
     }
 
     pub fn nvim_buf_attach(&self, buffer: i32, send_buffer: bool, opts: BufferAttachOptions) -> LuaResult<()> {
