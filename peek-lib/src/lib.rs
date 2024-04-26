@@ -16,6 +16,7 @@ pub fn file_picker(lua: &Lua, _: ()) -> LuaResult<()> {
     config.set("initial_data", picker::file::initial_data(lua))?;
     config.set("filter", picker::file::filter(lua))?;
     config.set("render", picker::file::render(lua))?;
+    config.set("mappings", picker::file::mappings(lua))?;
     create_window(lua, config)
 }
 
@@ -25,6 +26,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     let initial_data_function: mlua::Function = config.get("initial_data")?;
     let filter_function: mlua::Function = config.get("filter")?;
     let render_func: mlua::Function = config.get("render")?;
+    let mappings_func: mlua::Function = config.get("mappings")?;
     globals.set("peek_filter_func", filter_function)?;
     globals.set("peek_render_func", render_func)?;
 
@@ -44,11 +46,11 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     lua.load(format!("vim.cmd('file {}')", "File")).eval()?;
     lua.load("require('cmp').setup.buffer { enabled = false }").eval()?;
     vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(0))?;
-    vim.nvim_buf_set_keymap(buffer, vim::Mode::Normal, "<ESC>".into(), functions::exit(lua, win, buffer))?;
-    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<C-j>".into(), functions::select_down(lua, buffer))?;
-    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<Down>".into(), functions::select_down(lua, buffer))?;
-    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<C-k>".into(), functions::select_up(lua, buffer))?;
-    vim.nvim_buf_set_keymap(buffer, vim::Mode::Insert, "<Up>".into(), functions::select_up(lua, buffer))?;
+
+    // Assign mappings
+    mappings_func.call((win, buffer))?;
+
+    // Define highlights (need to be moved outside)
     vim.nvim_set_hl(
         0,
         "PeekSelection".into(),
