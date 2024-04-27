@@ -71,3 +71,26 @@ pub fn exit(lua: &Lua, window: i32, buffer: i32) -> Function {
     })
     .unwrap()
 }
+
+pub fn selected_value(lua: &Lua, buffer: i32) -> Function {
+    lua.create_function(move |lua, ()| {
+        let vim = Vim::new(lua);
+        let cursor_position: usize = vim.nvim_buf_get_var(buffer, "peek_cursor".into())?;
+        let offset: usize = vim.nvim_buf_get_var(buffer, "peek_offset".into())?;
+        let data: Vec<mlua::Value> = vim.nvim_buf_get_var(buffer, "peek_results".into())?;
+
+        match data.get(offset + cursor_position - 1) {
+            Some(v) => Ok(Some(v.clone())),
+            None => Ok(None),
+        }
+    })
+    .unwrap()
+}
+
+pub fn origin_window(lua: &Lua, buffer: i32) -> Function {
+    lua.create_function(move |lua, ()| {
+        let vim = Vim::new(lua);
+        vim.nvim_buf_get_var::<i32>(buffer, "peek_origin_window".into())
+    })
+    .unwrap()
+}

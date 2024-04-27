@@ -32,6 +32,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
 
     let vim = Vim::new(lua);
     let buffer = vim.nvim_create_buffer(false, true)?;
+    let origin_win = vim.win_get_id()?;
 
     lua.load("vim.cmd('bot sp')").eval()?;
     let win = vim.win_get_id()?;
@@ -41,6 +42,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     // Window/Buffer config
     lua.load(format!("vim.cmd('file {}')", "File")).eval()?;
     lua.load("require('cmp').setup.buffer { enabled = false }").eval()?;
+    vim.nvim_buf_set_var(buffer, "peek_origin_window".into(), LuaValue::Integer(origin_win.into()))?;
     vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(0))?;
     vim.nvim_buf_set_var(buffer, "peek_limit".into(), LuaValue::Integer(20))?;
     vim.nvim_buf_set_var(buffer, "peek_offset".into(), LuaValue::Integer(0))?;

@@ -199,6 +199,12 @@ impl<'a> Vim<'a> {
         func.call(inner_func)
     }
 
+    pub fn nvim_win_call(&self, window: i32, inner_func: Function) -> LuaResult<()> {
+        let func: Function = self.api.get("nvim_win_call").expect("can't load nvim_win_call");
+
+        func.call((window, inner_func))
+    }
+
     pub fn vim_defer_fn(&self, inner_func: Function, timeout: i32) -> LuaResult<()> {
         let func: Function = self.vim.get("defer_fn").expect("can't load vim.defer_fn");
 
@@ -239,5 +245,12 @@ impl<'a> Vim<'a> {
         let opts = self.lua.create_table()?;
         opts.set("callback", callback)?;
         func.call((buffer, self.lua.to_value(&mode).unwrap(), lhs, "", opts))
+    }
+
+    pub fn edit_file(&self, filename: String) -> LuaResult<()> {
+        let cmd: Table = self.vim.get("cmd").expect("can't load vim.cmd");
+        let edit: Function = cmd.get("edit").expect("can't load vim.cmd.edit");
+
+        edit.call(filename)
     }
 }

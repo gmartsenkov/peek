@@ -1,4 +1,4 @@
-use mlua::{Function, Lua, LuaSerdeExt};
+use mlua::{FromLua, Function, Lua, LuaSerdeExt};
 use serde::{Deserialize, Serialize};
 
 use crate::functions;
@@ -7,6 +7,12 @@ use crate::vim::Vim;
 #[derive(Serialize, Deserialize)]
 struct File {
     path: String,
+}
+
+impl<'lua> FromLua<'lua> for File {
+    fn from_lua(value: mlua::prelude::LuaValue<'lua>, lua: &'lua Lua) -> mlua::prelude::LuaResult<Self> {
+        lua.from_value(value)
+    }
 }
 
 pub fn filter(lua: &Lua) -> Function {
@@ -36,11 +42,7 @@ pub fn initial_data(lua: &Lua) -> Function {
 }
 
 pub fn to_line(lua: &Lua) -> Function {
-    lua.create_function(|lua, value: mlua::Value| {
-        let data: File = lua.from_value(value)?;
-        Ok(data.path)
-    })
-    .unwrap()
+    lua.create_function(|_lua, data: File| Ok(data.path)).unwrap()
 }
 
 pub fn mappings(lua: &Lua) -> Function {
@@ -57,7 +59,27 @@ pub fn mappings(lua: &Lua) -> Function {
         )?;
         vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-k>".into(), functions::select_up(lua, buffer))?;
         vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Up>".into(), functions::select_up(lua, buffer))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<CR>".into(), open_file(lua, buffer, window))?;
 
+        Ok(())
+    })
+    .unwrap()
+}
+
+pub fn open_file(lua: &Lua, buffer: i32, window: i32) -> Function {
+    lua.create_function(move |lua, ()| {
+        let selected: Option<File> = functions::selected_value(lua, buffer).call(())?;
+
+        if let Some(file) = selected {
+            let vim = Vim::new(lua);
+            let origin_window: i32 = functions::origin_window(lua, buffer).call(())?;
+            let inner_func = lua.create_function(move |lua, ()| {
+                let vim = Vim::new(lua);
+                vim.edit_file(file.path.clone())
+            })?;
+            vim.nvim_win_call(origin_window, inner_func)?;
+            functions::exit(lua, window, buffer).call(())?;
+        }
         Ok(())
     })
     .unwrap()
