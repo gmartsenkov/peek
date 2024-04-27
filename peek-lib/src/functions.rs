@@ -12,7 +12,7 @@ pub fn select_down(lua: &Lua, buffer: i32) -> Function {
         let cursor_position: i32 = vim.nvim_buf_get_var(buffer, "peek_cursor".into())?;
         let next = cursor_position + 1;
 
-        if (offset + limit) == total {
+        if (offset + cursor_position) == total {
             return Ok(());
         }
 
