@@ -17,17 +17,20 @@ impl<'lua> FromLua<'lua> for File {
 
 pub fn filter(lua: &Lua) -> Function {
     lua.create_function(|lua, prompt: String| {
-        let command = std::process::Command::new("fd")
-            .arg("--type")
-            .arg("file")
-            .arg("--max-results")
-            .arg("500")
+        let command = std::process::Command::new("fzf")
+            .arg("--filter")
             .arg(prompt)
-            .output()
+            .stdout(std::process::Stdio::null())
+            .stdout(std::process::Stdio::piped())
+            .spawn()
+            .unwrap()
+            .wait_with_output()
             .unwrap();
+
         let search_results: Vec<File> = std::str::from_utf8(&command.stdout)
             .unwrap()
             .lines()
+            .take(500)
             .map(|x| File { path: x.to_owned() })
             .collect();
         let result = lua.to_value(&search_results)?;
@@ -75,7 +78,9 @@ pub fn open_file(lua: &Lua, buffer: i32, window: i32) -> Function {
             let origin_window: i32 = functions::origin_window(lua, buffer).call(())?;
             let inner_func = lua.create_function(move |lua, ()| {
                 let vim = Vim::new(lua);
-                vim.edit_file(file.path.clone())
+                vim.edit_file(file.path.clone())?;
+                lua.load("vim.cmd('stopinsert')").eval()?;
+                Ok(())
             })?;
             vim.nvim_win_call(origin_window, inner_func)?;
             functions::exit(lua, window, buffer).call(())?;
