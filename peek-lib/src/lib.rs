@@ -40,6 +40,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     vim.nvim_win_set_buf(win, buffer)?;
 
     // Window/Buffer config
+    lua.load("vim.cmd('startinsert')").eval()?;
     lua.load(format!("vim.cmd('file {}')", "File")).eval()?;
     lua.load("require('cmp').setup.buffer { enabled = false }").eval()?;
     vim.nvim_buf_set_var(buffer, "peek_origin_window".into(), LuaValue::Integer(origin_win.into()))?;
