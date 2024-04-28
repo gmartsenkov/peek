@@ -4,3 +4,4 @@ peek/target
 peek-lib/target
 target
 peek.so
+test.log
