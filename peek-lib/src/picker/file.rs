@@ -1,5 +1,6 @@
 use mlua::{FromLua, Function, Lua, LuaSerdeExt};
 use serde::{Deserialize, Serialize};
+use std::io::Write;
 
 use crate::functions;
 use crate::vim::Vim;
@@ -17,17 +18,22 @@ impl<'lua> FromLua<'lua> for File {
 
 pub fn filter(lua: &Lua) -> Function {
     lua.create_function(|lua, prompt: String| {
-        let command = std::process::Command::new("fzf")
+        let mut command = std::process::Command::new("fzf")
             .arg("--filter")
-            .arg(prompt)
-            .stdout(std::process::Stdio::null())
+            .arg(&prompt)
+            .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .spawn()
-            .unwrap()
-            .wait_with_output()
             .unwrap();
 
-        let search_results: Vec<File> = std::str::from_utf8(&command.stdout)
+        let mut stdin = command.stdin.take().expect("Failed to open stdin");
+        std::thread::spawn(move || {
+            let cmd = std::process::Command::new("fd").arg("-t").arg("file").output().unwrap();
+            stdin.write_all(&cmd.stdout).expect("Failed to write to stdin");
+        });
+        let output = command.wait_with_output().unwrap();
+
+        let search_results: Vec<File> = std::str::from_utf8(&output.stdout)
             .unwrap()
             .lines()
             .take(500)
@@ -52,6 +58,8 @@ pub fn mappings(lua: &Lua) -> Function {
     lua.create_function(|lua, (window, buffer): (i32, i32)| {
         let vim = Vim::new(lua);
         vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Normal, "<ESC>".into(), functions::exit(lua, window, buffer))
+            .unwrap();
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<ESC>".into(), functions::exit(lua, window, buffer))
             .unwrap();
         vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-j>".into(), functions::select_down(lua, buffer))?;
         vim.nvim_buf_set_keymap(
@@ -83,6 +91,7 @@ pub fn open_file(lua: &Lua, buffer: i32, window: i32) -> Function {
                 Ok(())
             })?;
             vim.nvim_win_call(origin_window, inner_func)?;
+            vim.nvim_set_current_win(origin_window)?;
             functions::exit(lua, window, buffer).call(())?;
         }
         Ok(())

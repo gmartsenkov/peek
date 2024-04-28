@@ -36,16 +36,17 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
 
     lua.load("vim.cmd('bot sp')").eval()?;
     let win = vim.win_get_id()?;
-    vim.nvim_win_set_height(win, 20)?;
+    vim.nvim_win_set_height(win, 10)?;
     vim.nvim_win_set_buf(win, buffer)?;
 
     // Window/Buffer config
     lua.load("vim.cmd('startinsert')").eval()?;
     lua.load(format!("vim.cmd('file {}')", "File")).eval()?;
     lua.load("require('cmp').setup.buffer { enabled = false }").eval()?;
+    lua.load("vim.cmd('set nonu')").eval()?;
     vim.nvim_buf_set_var(buffer, "peek_origin_window".into(), LuaValue::Integer(origin_win.into()))?;
     vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(0))?;
-    vim.nvim_buf_set_var(buffer, "peek_limit".into(), LuaValue::Integer(20))?;
+    vim.nvim_buf_set_var(buffer, "peek_limit".into(), LuaValue::Integer(10))?;
     vim.nvim_buf_set_var(buffer, "peek_offset".into(), LuaValue::Integer(0))?;
 
     // Assign mappings

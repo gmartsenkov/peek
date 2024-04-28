@@ -247,6 +247,12 @@ impl<'a> Vim<'a> {
         func.call((buffer, self.lua.to_value(&mode).unwrap(), lhs, "", opts))
     }
 
+    pub fn nvim_set_current_win(&self, window: i32) -> LuaResult<()> {
+        let func: Function = self.api.get("nvim_set_current_win").expect("can't load nvim_set_current_win");
+
+        func.call(window)
+    }
+
     pub fn edit_file(&self, filename: String) -> LuaResult<()> {
         let cmd: Table = self.vim.get("cmd").expect("can't load vim.cmd");
         let edit: Function = cmd.get("edit").expect("can't load vim.cmd.edit");
