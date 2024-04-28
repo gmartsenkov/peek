@@ -1,3 +1,5 @@
+lua/*
+!lua/.gitkeep
 peek/target
 peek-lib/target
 target
