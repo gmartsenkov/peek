@@ -86,7 +86,7 @@ pub fn open_file(lua: &Lua, buffer: i32, window: i32) -> Function {
             let origin_window: i32 = functions::origin_window(lua, buffer).call(())?;
             let inner_func = lua.create_function(move |lua, ()| {
                 let vim = Vim::new(lua);
-                vim.edit_file(file.path.clone())?;
+                vim.edit_file(file.path.clone()).ok();
                 Ok(())
             })?;
             vim.nvim_win_call(origin_window, inner_func)?;
