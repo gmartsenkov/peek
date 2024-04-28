@@ -1,6 +1,5 @@
 use mlua::{FromLua, Function, Lua, LuaSerdeExt};
 use serde::{Deserialize, Serialize};
-use std::io::Write;
 
 use crate::functions;
 use crate::vim::Vim;
@@ -18,22 +17,11 @@ impl<'lua> FromLua<'lua> for File {
 
 pub fn filter(lua: &Lua) -> Function {
     lua.create_function(|lua, prompt: String| {
-        let mut command = std::process::Command::new("fzf")
-            .arg("--filter")
-            .arg(&prompt)
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .spawn()
-            .unwrap();
+        let mut binding = std::process::Command::new("fd");
+        let cmd = binding.arg("-t").arg("file");
+        let fzf_output = crate::search::fzf(prompt, cmd);
 
-        let mut stdin = command.stdin.take().expect("Failed to open stdin");
-        std::thread::spawn(move || {
-            let cmd = std::process::Command::new("fd").arg("-t").arg("file").output().unwrap();
-            stdin.write_all(&cmd.stdout).expect("Failed to write to stdin");
-        });
-        let output = command.wait_with_output().unwrap();
-
-        let search_results: Vec<File> = std::str::from_utf8(&output.stdout)
+        let search_results: Vec<File> = std::str::from_utf8(&fzf_output.stdout)
             .unwrap()
             .lines()
             .take(500)

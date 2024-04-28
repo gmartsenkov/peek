@@ -1,5 +1,6 @@
 pub mod functions;
 pub mod picker;
+pub mod search;
 pub mod vim;
 
 use log::LevelFilter;
