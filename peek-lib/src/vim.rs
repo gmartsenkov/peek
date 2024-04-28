@@ -248,7 +248,10 @@ impl<'a> Vim<'a> {
     }
 
     pub fn nvim_set_current_win(&self, window: i32) -> LuaResult<()> {
-        let func: Function = self.api.get("nvim_set_current_win").expect("can't load nvim_set_current_win");
+        let func: Function = self
+            .api
+            .get("nvim_set_current_win")
+            .expect("can't load nvim_set_current_win");
 
         func.call(window)
     }
