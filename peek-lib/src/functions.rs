@@ -61,6 +61,7 @@ pub fn exit(lua: &Lua, window: i32, buffer: i32) -> Function {
     lua.create_function(move |lua, ()| {
         let vim = Vim::new(lua);
         vim.nvim_win_close(window, true)?;
+        lua.load("vim.cmd('stopinsert')").eval()?;
         vim.nvim_buf_delete(
             buffer,
             BufferDeleteOptions {
