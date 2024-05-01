@@ -18,3 +18,20 @@ pub fn fzf(prompt: String, inner_command: &mut Command) -> Output {
 
     command.wait_with_output().unwrap()
 }
+
+#[allow(clippy::ptr_arg)]
+pub fn contains(tokens: &Vec<&str>, line: &str) -> bool {
+    tokens.iter().any(|token| line.contains(token))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_containts() {
+        assert!(contains(&vec!("rom", "repo"), "lib/rom/repo/jon.rb"));
+        assert!(!contains(&vec!("rom"), "lib/repo/jon.rb"));
+        assert!(contains(&vec!("rom"), "rom"));
+    }
+}

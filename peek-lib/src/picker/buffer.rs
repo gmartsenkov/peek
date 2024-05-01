@@ -1,15 +1,16 @@
 use mlua::{FromLua, Function, Lua, LuaSerdeExt};
 use serde::{Deserialize, Serialize};
 
-use crate::functions;
-use crate::vim::Vim;
+use crate::vim::{GetOptionValue, Vim};
+use crate::{functions, search};
 
 #[derive(Serialize, Deserialize)]
-struct File {
-    path: String,
+struct Buffer {
+    id: usize,
+    name: String,
 }
 
-impl<'lua> FromLua<'lua> for File {
+impl<'lua> FromLua<'lua> for Buffer {
     fn from_lua(value: mlua::prelude::LuaValue<'lua>, lua: &'lua Lua) -> mlua::prelude::LuaResult<Self> {
         lua.from_value(value)
     }
@@ -17,17 +18,23 @@ impl<'lua> FromLua<'lua> for File {
 
 pub fn filter(lua: &Lua) -> Function {
     lua.create_function(|lua, prompt: String| {
-        let mut binding = std::process::Command::new("fd");
-        let cmd = binding.arg("-t").arg("file");
-        let fzf_output = crate::search::fzf(prompt, cmd);
-
-        let search_results: Vec<File> = std::str::from_utf8(&fzf_output.stdout)
-            .unwrap()
-            .lines()
-            .take(500)
-            .map(|x| File { path: x.to_owned() })
+        let vim = Vim::new(lua);
+        let prompt_tokens = prompt.split(' ').collect();
+        let buffer_ids = vim.nvim_list_bufs()?;
+        let listed_buffers: Vec<Buffer> = buffer_ids
+            .into_iter()
+            .filter(|id| {
+                vim.nvim_get_option_value("buflisted".into(), GetOptionValue { buf: Some(*id) })
+                    .unwrap()
+            })
+            .map(|id| Buffer {
+                id,
+                name: vim.nvim_buf_get_name(id).unwrap(),
+            })
+            .filter(|buffer| search::contains(&prompt_tokens, &buffer.name))
             .collect();
-        let result = lua.to_value(&search_results)?;
+
+        let result = lua.to_value(&listed_buffers)?;
         Ok(result)
     })
     .unwrap()
@@ -39,7 +46,7 @@ pub fn initial_data(lua: &Lua) -> Function {
 }
 
 pub fn to_line(lua: &Lua) -> Function {
-    lua.create_function(|_lua, data: File| Ok(data.path)).unwrap()
+    lua.create_function(|_lua, buffer: Buffer| Ok(buffer.name)).unwrap()
 }
 
 pub fn mappings(lua: &Lua) -> Function {
@@ -58,27 +65,22 @@ pub fn mappings(lua: &Lua) -> Function {
         )?;
         vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-k>".into(), functions::select_up(lua, buffer))?;
         vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Up>".into(), functions::select_up(lua, buffer))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<CR>".into(), open_file(lua, buffer, window))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<CR>".into(), open_buffer(lua, buffer, window))?;
 
         Ok(())
     })
     .unwrap()
 }
 
-pub fn open_file(lua: &Lua, buffer: usize, window: usize) -> Function {
+pub fn open_buffer(lua: &Lua, buffer: usize, window: usize) -> Function {
     lua.create_function(move |lua, ()| {
-        let selected: Option<File> = functions::selected_value(lua, buffer).call(())?;
+        let selected: Option<Buffer> = functions::selected_value(lua, buffer).call(())?;
 
-        if let Some(file) = selected {
+        if let Some(selected_buffer) = selected {
             let vim = Vim::new(lua);
             let origin_window: usize = functions::origin_window(lua, buffer).call(())?;
-            let inner_func = lua.create_function(move |lua, ()| {
-                let vim = Vim::new(lua);
-                vim.edit_file(file.path.clone()).ok();
-                Ok(())
-            })?;
-            vim.nvim_win_call(origin_window, inner_func)?;
-            vim.nvim_set_current_win(origin_window)?;
+
+            vim.nvim_win_set_buf(origin_window, selected_buffer.id)?;
             functions::exit(lua, window, buffer).call(())?;
         }
         Ok(())

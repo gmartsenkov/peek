@@ -2,7 +2,7 @@ use crate::vim::{BufferDeleteOptions, Vim};
 use mlua::prelude::*;
 use mlua::Function;
 
-pub fn select_down(lua: &Lua, buffer: i32) -> Function {
+pub fn select_down(lua: &Lua, buffer: usize) -> Function {
     lua.create_function(move |lua, ()| {
         let vim = Vim::new(lua);
 
@@ -33,7 +33,7 @@ pub fn select_down(lua: &Lua, buffer: i32) -> Function {
     .unwrap()
 }
 
-pub fn select_up(lua: &Lua, buffer: i32) -> Function {
+pub fn select_up(lua: &Lua, buffer: usize) -> Function {
     lua.create_function(move |lua, ()| {
         let vim = Vim::new(lua);
         let cursor_position = vim.nvim_buf_get_var::<i32>(buffer, "peek_cursor".into())?;
@@ -57,7 +57,7 @@ pub fn select_up(lua: &Lua, buffer: i32) -> Function {
     .unwrap()
 }
 
-pub fn exit(lua: &Lua, window: i32, buffer: i32) -> Function {
+pub fn exit(lua: &Lua, window: usize, buffer: usize) -> Function {
     lua.create_function(move |lua, ()| {
         let vim = Vim::new(lua);
         vim.nvim_win_close(window, true)?;
@@ -73,7 +73,7 @@ pub fn exit(lua: &Lua, window: i32, buffer: i32) -> Function {
     .unwrap()
 }
 
-pub fn selected_value(lua: &Lua, buffer: i32) -> Function {
+pub fn selected_value(lua: &Lua, buffer: usize) -> Function {
     lua.create_function(move |lua, ()| {
         let vim = Vim::new(lua);
         let cursor_position: usize = vim.nvim_buf_get_var(buffer, "peek_cursor".into())?;
@@ -88,7 +88,7 @@ pub fn selected_value(lua: &Lua, buffer: i32) -> Function {
     .unwrap()
 }
 
-pub fn origin_window(lua: &Lua, buffer: i32) -> Function {
+pub fn origin_window(lua: &Lua, buffer: usize) -> Function {
     lua.create_function(move |lua, ()| {
         let vim = Vim::new(lua);
         vim.nvim_buf_get_var::<i32>(buffer, "peek_origin_window".into())
