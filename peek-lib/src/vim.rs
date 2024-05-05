@@ -74,12 +74,12 @@ impl<'a> Vim<'a> {
         Vim { lua, api, vim }
     }
 
-    pub fn nvim_get_current_buf(&self) -> LuaResult<i32> {
+    pub fn nvim_get_current_buf(&self) -> LuaResult<usize> {
         let func: Function = self
             .api
             .get("nvim_get_current_buf")
             .expect("can't load nvim_get_current_buf");
-        func.call::<_, i32>(())
+        func.call(())
     }
 
     pub fn win_get_id(&self) -> LuaResult<usize> {
@@ -93,6 +93,14 @@ impl<'a> Vim<'a> {
         let fn_func: Table = self.vim.get("fn").expect("can't load fn");
         let func: Function = fn_func.get("bufnr").expect("can't load vim.fn.bufnr");
 
+        func.call(())
+    }
+
+    pub fn nvim_get_current_win(&self) -> LuaResult<usize> {
+        let func: Function = self
+            .api
+            .get("nvim_get_current_win")
+            .expect("can't load nvim_get_current_win");
         func.call(())
     }
 

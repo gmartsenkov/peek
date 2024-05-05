@@ -43,43 +43,39 @@ pub fn to_line(lua: &Lua) -> Function {
 }
 
 pub fn mappings(lua: &Lua) -> Function {
-    lua.create_function(|lua, (window, buffer): (usize, usize)| {
+    lua.create_function(|lua, ()| {
         let vim = Vim::new(lua);
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Normal, "<ESC>".into(), functions::exit(lua, window, buffer))
+        let buffer = vim.nvim_get_current_buf().unwrap();
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Normal, "<ESC>".into(), functions::exit(lua))
             .unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<ESC>".into(), functions::exit(lua, window, buffer))
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<ESC>".into(), functions::exit(lua))
             .unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-j>".into(), functions::select_down(lua, buffer))?;
-        vim.nvim_buf_set_keymap(
-            buffer,
-            crate::vim::Mode::Insert,
-            "<Down>".into(),
-            functions::select_down(lua, buffer),
-        )?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-k>".into(), functions::select_up(lua, buffer))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Up>".into(), functions::select_up(lua, buffer))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<CR>".into(), open_file(lua, buffer, window))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-j>".into(), functions::select_down(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Down>".into(), functions::select_down(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-k>".into(), functions::select_up(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Up>".into(), functions::select_up(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<CR>".into(), open_file(lua))?;
 
         Ok(())
     })
     .unwrap()
 }
 
-pub fn open_file(lua: &Lua, buffer: usize, window: usize) -> Function {
+pub fn open_file(lua: &Lua) -> Function {
     lua.create_function(move |lua, ()| {
-        let selected: Option<File> = functions::selected_value(lua, buffer).call(())?;
+        let selected: Option<File> = functions::selected_value(lua).call(())?;
 
         if let Some(file) = selected {
             let vim = Vim::new(lua);
-            let origin_window: usize = functions::origin_window(lua, buffer).call(())?;
+            let origin_window: usize = functions::origin_window(lua).call(())?;
             let inner_func = lua.create_function(move |lua, ()| {
                 let vim = Vim::new(lua);
                 vim.edit_file(file.path.clone()).ok();
                 Ok(())
             })?;
+            functions::exit(lua).call(())?;
             vim.nvim_win_call(origin_window, inner_func)?;
             vim.nvim_set_current_win(origin_window)?;
-            functions::exit(lua, window, buffer).call(())?;
         }
         Ok(())
     })

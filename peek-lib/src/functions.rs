@@ -2,10 +2,10 @@ use crate::vim::{BufferDeleteOptions, Vim};
 use mlua::prelude::*;
 use mlua::Function;
 
-pub fn select_down(lua: &Lua, buffer: usize) -> Function {
+pub fn select_down(lua: &Lua) -> Function {
     lua.create_function(move |lua, ()| {
+        let buffer = 0;
         let vim = Vim::new(lua);
-
         let total: i32 = vim.nvim_buf_get_var(buffer, "peek_results_count".into())?;
         let offset: i32 = vim.nvim_buf_get_var(buffer, "peek_offset".into())?;
         let limit: i32 = vim.nvim_buf_get_var(buffer, "peek_limit".into())?;
@@ -33,8 +33,9 @@ pub fn select_down(lua: &Lua, buffer: usize) -> Function {
     .unwrap()
 }
 
-pub fn select_up(lua: &Lua, buffer: usize) -> Function {
+pub fn select_up(lua: &Lua) -> Function {
     lua.create_function(move |lua, ()| {
+        let buffer = 0;
         let vim = Vim::new(lua);
         let cursor_position = vim.nvim_buf_get_var::<i32>(buffer, "peek_cursor".into())?;
         let next = std::cmp::max(cursor_position - 1, 0);
@@ -57,9 +58,11 @@ pub fn select_up(lua: &Lua, buffer: usize) -> Function {
     .unwrap()
 }
 
-pub fn exit(lua: &Lua, window: usize, buffer: usize) -> Function {
+pub fn exit(lua: &Lua) -> Function {
     lua.create_function(move |lua, ()| {
         let vim = Vim::new(lua);
+        let buffer = vim.nvim_get_current_buf().unwrap();
+        let window = vim.nvim_get_current_win().unwrap();
         vim.nvim_win_close(window, true)?;
         lua.load("vim.cmd('stopinsert')").eval()?;
         vim.nvim_buf_delete(
@@ -73,8 +76,9 @@ pub fn exit(lua: &Lua, window: usize, buffer: usize) -> Function {
     .unwrap()
 }
 
-pub fn selected_value(lua: &Lua, buffer: usize) -> Function {
+pub fn selected_value(lua: &Lua) -> Function {
     lua.create_function(move |lua, ()| {
+        let buffer = 0;
         let vim = Vim::new(lua);
         let cursor_position: usize = vim.nvim_buf_get_var(buffer, "peek_cursor".into())?;
         let offset: usize = vim.nvim_buf_get_var(buffer, "peek_offset".into())?;
@@ -88,10 +92,11 @@ pub fn selected_value(lua: &Lua, buffer: usize) -> Function {
     .unwrap()
 }
 
-pub fn origin_window(lua: &Lua, buffer: usize) -> Function {
+pub fn origin_window(lua: &Lua) -> Function {
     lua.create_function(move |lua, ()| {
+        let buffer = 0;
         let vim = Vim::new(lua);
-        vim.nvim_buf_get_var::<i32>(buffer, "peek_origin_window".into())
+        vim.nvim_buf_get_var::<usize>(buffer, "peek_origin_window".into())
     })
     .unwrap()
 }

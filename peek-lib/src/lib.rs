@@ -6,11 +6,6 @@ pub mod vim;
 use mlua::prelude::*;
 use vim::Vim;
 
-pub fn nvim_get_current_buf(lua: &Lua, _: ()) -> LuaResult<i32> {
-    let vim = Vim::new(lua);
-    vim.nvim_get_current_buf()
-}
-
 pub fn file_picker(lua: &Lua, _: ()) -> LuaResult<()> {
     let config = lua.create_table()?;
     config.set("initial_data", picker::file::initial_data(lua))?;
@@ -41,7 +36,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
 
     let vim = Vim::new(lua);
     let buffer = vim.nvim_create_buffer(false, true)?;
-    let origin_win = vim.win_get_id()?;
+    let origin_win = vim.nvim_get_current_win().unwrap();
 
     lua.load("vim.cmd('bot sp')").eval()?;
     let win = vim.win_get_id()?;
@@ -59,7 +54,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     vim.nvim_buf_set_var(buffer, "peek_offset".into(), LuaValue::Integer(0))?;
 
     // Assign mappings
-    mappings_func.call((win, buffer))?;
+    mappings_func.call(())?;
 
     // Define highlights (need to be moved outside)
     vim.nvim_set_hl(
