@@ -1,7 +1,6 @@
 use std::io::Write;
-use std::process::{Command, Output};
 
-pub fn fzf(prompt: String, inner_command: &mut Command) -> Output {
+pub fn fzf(prompt: String, stdout: Vec<u8>) -> Vec<String> {
     let mut command = std::process::Command::new("fzf")
         .arg("--filter")
         .arg(&prompt)
@@ -10,13 +9,17 @@ pub fn fzf(prompt: String, inner_command: &mut Command) -> Output {
         .spawn()
         .unwrap();
 
-    let output = inner_command.output().unwrap();
     let mut stdin = command.stdin.take().expect("Failed to open stdin");
     std::thread::spawn(move || {
-        stdin.write_all(&output.stdout).expect("Failed to write to stdin");
+        stdin.write_all(&stdout).expect("Failed to write to stdin");
     });
 
-    command.wait_with_output().unwrap()
+    let output = command.wait_with_output().unwrap().stdout;
+    std::str::from_utf8(&output)
+        .unwrap()
+        .lines()
+        .map(String::from)
+        .collect()
 }
 
 #[allow(clippy::ptr_arg)]

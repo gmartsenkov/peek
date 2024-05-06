@@ -10,36 +10,62 @@ struct Buffer {
     name: String,
 }
 
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)]
+struct Config {
+    cwd: Option<String>,
+}
+
 impl<'lua> FromLua<'lua> for Buffer {
     fn from_lua(value: mlua::prelude::LuaValue<'lua>, lua: &'lua Lua) -> mlua::prelude::LuaResult<Self> {
         lua.from_value(value)
     }
 }
 
+impl<'lua> FromLua<'lua> for Config {
+    fn from_lua(value: mlua::prelude::LuaValue<'lua>, lua: &'lua Lua) -> mlua::prelude::LuaResult<Self> {
+        let mut options = mlua::DeserializeOptions::new();
+        options.deny_unsupported_types = false;
+        lua.from_value_with(value, options)
+    }
+}
+
 pub fn filter(lua: &Lua) -> Function {
     lua.create_function(|lua, prompt: String| {
-        let vim = Vim::new(lua);
-        let prompt_tokens = prompt.split(' ').collect();
-        let buffer_ids = vim.nvim_list_bufs()?;
-        let listed_buffers: Vec<Buffer> = buffer_ids
+        let _vim = Vim::new(lua);
+        let listed_buffers = listed_buffers(lua);
+        let buffer_names: String = listed_buffers
+            .iter()
+            .map(|x| x.name.clone())
+            .collect::<Vec<String>>()
+            .join("\n");
+        let matches = search::fzf(prompt, buffer_names.as_bytes().to_vec());
+        let filtered_buffers: Vec<Buffer> = listed_buffers
             .into_iter()
-            .filter(|id| {
-                vim.nvim_get_option_value("buflisted".into(), GetOptionValue { buf: Some(*id) })
-                    .unwrap()
-            })
-            .map(|id| Buffer {
-                id,
-                name: vim.nvim_buf_get_name(id).unwrap(),
-            })
-            .filter(|buffer| search::contains(&prompt_tokens, &buffer.name))
+            .filter(|x| matches.contains(&x.name))
             .collect();
 
-        let result = lua.to_value(&listed_buffers)?;
+        let result = lua.to_value(&filtered_buffers)?;
         Ok(result)
     })
     .unwrap()
 }
 
+fn listed_buffers(lua: &Lua) -> Vec<Buffer> {
+    let vim = Vim::new(lua);
+    let buffer_ids = vim.nvim_list_bufs().unwrap();
+    buffer_ids
+        .into_iter()
+        .filter(|id| {
+            vim.nvim_get_option_value("buflisted".into(), GetOptionValue { buf: Some(*id) })
+                .unwrap()
+        })
+        .map(|id| Buffer {
+            id,
+            name: vim.nvim_buf_get_name(id).unwrap(),
+        })
+        .collect()
+}
 pub fn initial_data(lua: &Lua) -> Function {
     lua.create_function(|lua, ()| filter(lua).call::<_, Vec<mlua::Value>>(""))
         .unwrap()

@@ -18,12 +18,11 @@ impl<'lua> FromLua<'lua> for File {
 pub fn filter(lua: &Lua) -> Function {
     lua.create_function(|lua, prompt: String| {
         let mut binding = std::process::Command::new("fd");
-        let cmd = binding.arg("-t").arg("file");
+        let cmd = binding.arg("-t").arg("file").output().unwrap().stdout;
         let fzf_output = crate::search::fzf(prompt, cmd);
 
-        let search_results: Vec<File> = std::str::from_utf8(&fzf_output.stdout)
-            .unwrap()
-            .lines()
+        let search_results: Vec<File> = fzf_output
+            .iter()
             .take(500)
             .map(|x| File { path: x.to_owned() })
             .collect();

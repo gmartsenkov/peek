@@ -15,8 +15,7 @@ pub fn file_picker(lua: &Lua, _: ()) -> LuaResult<()> {
     create_window(lua, config)
 }
 
-pub fn buffer_picker(lua: &Lua, _: ()) -> LuaResult<()> {
-    let config = lua.create_table()?;
+pub fn buffer_picker(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     config.set("initial_data", picker::buffer::initial_data(lua))?;
     config.set("filter", picker::buffer::filter(lua))?;
     config.set("to_line", picker::buffer::to_line(lua))?;
@@ -52,6 +51,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(0))?;
     vim.nvim_buf_set_var(buffer, "peek_limit".into(), LuaValue::Integer(20))?;
     vim.nvim_buf_set_var(buffer, "peek_offset".into(), LuaValue::Integer(0))?;
+    vim.nvim_buf_set_var(buffer, "peek_config".into(), LuaValue::Table(config))?;
 
     // Assign mappings
     mappings_func.call(())?;
