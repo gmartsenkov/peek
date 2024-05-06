@@ -11,7 +11,6 @@ struct Buffer {
 }
 
 #[derive(Deserialize, Debug)]
-#[allow(dead_code)]
 struct Config {
     cwd: Option<String>,
 }
@@ -53,6 +52,9 @@ pub fn filter(lua: &Lua) -> Function {
 
 fn listed_buffers(lua: &Lua) -> Vec<Buffer> {
     let vim = Vim::new(lua);
+    let config = vim
+        .nvim_buf_get_var(0, "peek_config".into())
+        .unwrap_or(Config { cwd: None });
     let buffer_ids = vim.nvim_list_bufs().unwrap();
     buffer_ids
         .into_iter()
@@ -60,12 +62,21 @@ fn listed_buffers(lua: &Lua) -> Vec<Buffer> {
             vim.nvim_get_option_value("buflisted".into(), GetOptionValue { buf: Some(*id) })
                 .unwrap()
         })
-        .map(|id| Buffer {
-            id,
-            name: vim.nvim_buf_get_name(id).unwrap(),
+        .map(|id| {
+            let name = vim.nvim_buf_get_name(id).unwrap();
+
+            if let Some(cwd) = &config.cwd {
+                return Buffer {
+                    id,
+                    name: name.strip_prefix(cwd).unwrap_or(&name).to_string(),
+                };
+            }
+
+            Buffer { id, name }
         })
         .collect()
 }
+
 pub fn initial_data(lua: &Lua) -> Function {
     lua.create_function(|lua, ()| filter(lua).call::<_, Vec<mlua::Value>>(""))
         .unwrap()
