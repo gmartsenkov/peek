@@ -113,8 +113,9 @@ pub fn open_buffer(lua: &Lua) -> Function {
             let vim = Vim::new(lua);
             let origin_window: usize = functions::origin_window(lua).call(())?;
 
-            vim.nvim_win_set_buf(origin_window, selected_buffer.id)?;
             functions::exit(lua).call(())?;
+            vim.nvim_win_set_buf(origin_window, selected_buffer.id)?;
+            vim.nvim_set_current_win(origin_window)?;
         }
         Ok(())
     })
