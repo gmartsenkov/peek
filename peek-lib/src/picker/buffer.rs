@@ -86,7 +86,7 @@ pub fn to_line(lua: &Lua) -> Function {
     lua.create_function(|_lua, buffer: Buffer| Ok(buffer.name)).unwrap()
 }
 
-pub fn mappings(lua: &Lua) -> Function {
+pub fn on_open(lua: &Lua) -> Function {
     lua.create_function(|lua, ()| {
         let vim = Vim::new(lua);
         let buffer = vim.nvim_get_current_buf().unwrap();

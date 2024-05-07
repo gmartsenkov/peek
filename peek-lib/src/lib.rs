@@ -11,7 +11,7 @@ pub fn file_picker(lua: &Lua, _: ()) -> LuaResult<()> {
     config.set("initial_data", picker::file::initial_data(lua))?;
     config.set("filter", picker::file::filter(lua))?;
     config.set("to_line", picker::file::to_line(lua))?;
-    config.set("mappings", picker::file::mappings(lua))?;
+    config.set("on_open", picker::file::on_open(lua))?;
     create_window(lua, config)
 }
 
@@ -19,7 +19,7 @@ pub fn buffer_picker(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     config.set("initial_data", picker::buffer::initial_data(lua))?;
     config.set("filter", picker::buffer::filter(lua))?;
     config.set("to_line", picker::buffer::to_line(lua))?;
-    config.set("mappings", picker::buffer::mappings(lua))?;
+    config.set("on_open", picker::buffer::on_open(lua))?;
     create_window(lua, config)
 }
 
@@ -29,7 +29,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     let initial_data_function: mlua::Function = config.get("initial_data")?;
     let filter_function: mlua::Function = config.get("filter")?;
     let to_line_func: mlua::Function = config.get("to_line")?;
-    let mappings_func: mlua::Function = config.get("mappings")?;
+    let on_open_func: mlua::Function = config.get("on_open")?;
     globals.set("peek_filter_func", filter_function)?;
     globals.set("peek_to_line_func", to_line_func)?;
 
@@ -54,7 +54,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     vim.nvim_buf_set_var(buffer, "peek_config".into(), LuaValue::Table(config))?;
 
     // Assign mappings
-    mappings_func.call(())?;
+    on_open_func.call(())?;
 
     // Define highlights (need to be moved outside)
     vim.nvim_set_hl(
