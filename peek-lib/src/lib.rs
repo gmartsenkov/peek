@@ -6,6 +6,59 @@ pub mod vim;
 use mlua::prelude::*;
 use vim::Vim;
 
+#[derive(serde::Deserialize, Debug)]
+pub struct Config<'a> {
+    #[serde(skip)]
+    table: Option<mlua::Table<'a>>,
+    pub cwd: Option<String>,
+}
+
+impl<'a> Config<'a> {
+    pub fn new(lua: &'a Lua) -> Config {
+        let vim = Vim::new(lua);
+        vim.nvim_buf_get_var::<Config>(0, "peek_config".into()).unwrap()
+    }
+
+    pub fn on_open_callback(&self) -> mlua::prelude::LuaResult<()> {
+        self.table
+            .as_ref()
+            .unwrap()
+            .get::<_, mlua::Function>("on_open")
+            .unwrap()
+            .call(())
+    }
+
+    pub fn filter(&self, prompt: String) -> mlua::prelude::LuaResult<Vec<mlua::Value>> {
+        self.table
+            .as_ref()
+            .unwrap()
+            .get::<_, mlua::Function>("filter")
+            .unwrap()
+            .call(prompt)
+    }
+
+    pub fn to_line(&self, value: &'a mlua::Value) -> mlua::prelude::LuaResult<String> {
+        self.table
+            .as_ref()
+            .unwrap()
+            .get::<_, mlua::Function>("to_line")
+            .unwrap()
+            .call(value)
+    }
+}
+
+impl<'lua> FromLua<'lua> for Config<'lua> {
+    fn from_lua(value: mlua::prelude::LuaValue<'lua>, lua: &'lua Lua) -> mlua::prelude::LuaResult<Self> {
+        let mut options = mlua::DeserializeOptions::new();
+        options.deny_unsupported_types = false;
+        let mut b: Config = lua.from_value_with(value.clone(), options).unwrap();
+        if let LuaValue::Table(t) = value {
+            b.table = Some(t);
+        }
+        Ok(b)
+    }
+}
+
 pub fn file_picker(lua: &Lua, _: ()) -> LuaResult<()> {
     let config = lua.create_table()?;
     config.set("initial_data", picker::file::initial_data(lua))?;
@@ -25,13 +78,7 @@ pub fn buffer_picker(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
 
 pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     // simple_logging::log_to_file("test.log", LevelFilter::Info).unwrap();
-    let globals = lua.globals();
     let initial_data_function: mlua::Function = config.get("initial_data")?;
-    let filter_function: mlua::Function = config.get("filter")?;
-    let to_line_func: mlua::Function = config.get("to_line")?;
-    let on_open_func: mlua::Function = config.get("on_open")?;
-    globals.set("peek_filter_func", filter_function)?;
-    globals.set("peek_to_line_func", to_line_func)?;
 
     let vim = Vim::new(lua);
     let buffer = vim.nvim_create_buffer(false, true)?;
@@ -53,8 +100,10 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     vim.nvim_buf_set_var(buffer, "peek_offset".into(), LuaValue::Integer(0))?;
     vim.nvim_buf_set_var(buffer, "peek_config".into(), LuaValue::Table(config))?;
 
+    let conf = Config::new(lua);
+
     // Assign mappings
-    on_open_func.call(())?;
+    conf.on_open_callback().unwrap();
 
     // Define highlights (need to be moved outside)
     vim.nvim_set_hl(
@@ -83,9 +132,8 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
             let prompt = lines.first().unwrap().clone();
 
             let callback = lua.create_function(move |lua, ()| {
-                let globals = lua.globals();
-                let filter_function: mlua::Function = globals.get("peek_filter_func")?;
-                let search_results: Vec<mlua::Value> = filter_function.call(prompt.clone())?;
+                let config = Config::new(lua);
+                let search_results: Vec<mlua::Value> = config.filter(prompt.clone()).unwrap();
 
                 let vim = Vim::new(lua);
                 vim.nvim_buf_set_var(buffer, "peek_results".into(), lua.to_value(&search_results).unwrap())?;
@@ -116,15 +164,14 @@ pub fn render(lua: &Lua) -> mlua::Function {
     lua.create_function(|lua, ()| {
         let vim = Vim::new(lua);
         let buffer = vim.bufnr()?;
-        let globals = lua.globals();
-        let to_line_function: mlua::Function = globals.get("peek_to_line_func")?;
+        let config = Config::new(lua);
         let data: Vec<mlua::Value> = vim.nvim_buf_get_var(buffer, "peek_results".into())?;
         let limit: usize = vim.nvim_buf_get_var(buffer, "peek_limit".into())?;
         let offset: usize = vim.nvim_buf_get_var(buffer, "peek_offset".into())?;
 
         let lines: Vec<String> = data
             .iter()
-            .map(|x| to_line_function.call(x).unwrap())
+            .map(|x| config.to_line(x).unwrap())
             .skip(offset)
             .take(limit)
             .collect();
