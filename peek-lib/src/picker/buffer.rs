@@ -44,7 +44,7 @@ fn listed_buffers(lua: &Lua) -> Vec<Buffer> {
     buffer_ids
         .into_iter()
         .filter(|id| {
-            vim.nvim_get_option_value("buflisted".into(), GetOptionValue { buf: Some(*id) })
+            vim.nvim_get_option_value("buflisted", GetOptionValue { buf: Some(*id) })
                 .unwrap()
         })
         .map(|id| {
@@ -75,15 +75,15 @@ pub fn on_open(lua: &Lua) -> Function {
     lua.create_function(|lua, ()| {
         let vim = Vim::new(lua);
         let buffer = vim.nvim_get_current_buf().unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Normal, "<ESC>".into(), functions::exit(lua))
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Normal, "<ESC>", functions::exit(lua))
             .unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<ESC>".into(), functions::exit(lua))
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<ESC>", functions::exit(lua))
             .unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-j>".into(), functions::select_down(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Down>".into(), functions::select_down(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-k>".into(), functions::select_up(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Up>".into(), functions::select_up(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<CR>".into(), open_buffer(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-j>", functions::select_down(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Down>", functions::select_down(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-k>", functions::select_up(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Up>", functions::select_up(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<CR>", open_buffer(lua))?;
 
         Ok(())
     })

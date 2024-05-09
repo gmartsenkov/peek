@@ -16,7 +16,7 @@ pub struct Config<'a> {
 impl<'a> Config<'a> {
     pub fn new(lua: &'a Lua) -> Config {
         let vim = Vim::new(lua);
-        vim.nvim_buf_get_var::<Config>(0, "peek_config".into()).unwrap()
+        vim.nvim_buf_get_var::<Config>(0, "peek_config").unwrap()
     }
 
     pub fn on_open_callback(&self) -> mlua::prelude::LuaResult<()> {
@@ -77,11 +77,11 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     lua.load(format!("vim.cmd('file {}')", "File")).eval()?;
     lua.load("require('cmp').setup.buffer { enabled = false }").eval()?;
     lua.load("vim.cmd('set nonu')").eval()?;
-    vim.nvim_buf_set_var(buffer, "peek_origin_window".into(), LuaValue::Integer(origin_win.try_into().unwrap()))?;
-    vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(0))?;
-    vim.nvim_buf_set_var(buffer, "peek_limit".into(), LuaValue::Integer(20))?;
-    vim.nvim_buf_set_var(buffer, "peek_offset".into(), LuaValue::Integer(0))?;
-    vim.nvim_buf_set_var(buffer, "peek_config".into(), LuaValue::Table(config))?;
+    vim.nvim_buf_set_var(buffer, "peek_origin_window", LuaValue::Integer(origin_win.try_into().unwrap()))?;
+    vim.nvim_buf_set_var(buffer, "peek_cursor", LuaValue::Integer(0))?;
+    vim.nvim_buf_set_var(buffer, "peek_limit", LuaValue::Integer(20))?;
+    vim.nvim_buf_set_var(buffer, "peek_offset", LuaValue::Integer(0))?;
+    vim.nvim_buf_set_var(buffer, "peek_config", LuaValue::Table(config))?;
 
     let conf = Config::new(lua);
 
@@ -91,7 +91,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     // Define highlights (need to be moved outside)
     vim.nvim_set_hl(
         0,
-        "PeekSelection".into(),
+        "PeekSelection",
         vim::HighlightOptions {
             bg: Some("purple".into()),
             fg: Some("white".into()),
@@ -99,8 +99,8 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     )?;
 
     let initial_data: Vec<mlua::Value> = initial_data_function.call(())?;
-    vim.nvim_buf_set_var(buffer, "peek_results".into(), lua.to_value(&initial_data).unwrap())?;
-    vim.nvim_buf_set_var(buffer, "peek_results_count".into(), lua.to_value(&initial_data.len()).unwrap())?;
+    vim.nvim_buf_set_var(buffer, "peek_results", lua.to_value(&initial_data).unwrap())?;
+    vim.nvim_buf_set_var(buffer, "peek_results_count", lua.to_value(&initial_data.len()).unwrap())?;
     render(lua).call(())?;
 
     let buff_attach_function = lua.create_function(
@@ -119,16 +119,16 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
                 let search_results: Vec<mlua::Value> = config.filter(prompt.clone()).unwrap();
 
                 let vim = Vim::new(lua);
-                vim.nvim_buf_set_var(buffer, "peek_results".into(), lua.to_value(&search_results).unwrap())?;
+                vim.nvim_buf_set_var(buffer, "peek_results", lua.to_value(&search_results).unwrap())?;
                 vim.nvim_buf_set_var(
                     buffer,
-                    "peek_results_count".into(),
+                    "peek_results_count",
                     lua.to_value(&search_results.len()).unwrap(),
                 )?;
-                vim.nvim_buf_set_var(buffer, "peek_cursor".into(), LuaValue::Integer(1))?;
-                vim.nvim_buf_set_var(buffer, "peek_offset".into(), LuaValue::Integer(0))?;
+                vim.nvim_buf_set_var(buffer, "peek_cursor", LuaValue::Integer(1))?;
+                vim.nvim_buf_set_var(buffer, "peek_offset", LuaValue::Integer(0))?;
                 render(lua).call(())?;
-                vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection".into(), 1, 0, -1)?;
+                vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection", 1, 0, -1)?;
                 Ok(())
             })?;
             vim.vim_schedule(callback)?;
@@ -148,9 +148,9 @@ pub fn render(lua: &Lua) -> mlua::Function {
         let vim = Vim::new(lua);
         let buffer = vim.bufnr()?;
         let config = Config::new(lua);
-        let data: Vec<mlua::Value> = vim.nvim_buf_get_var(buffer, "peek_results".into())?;
-        let limit: usize = vim.nvim_buf_get_var(buffer, "peek_limit".into())?;
-        let offset: usize = vim.nvim_buf_get_var(buffer, "peek_offset".into())?;
+        let data: Vec<mlua::Value> = vim.nvim_buf_get_var(buffer, "peek_results")?;
+        let limit: usize = vim.nvim_buf_get_var(buffer, "peek_limit")?;
+        let offset: usize = vim.nvim_buf_get_var(buffer, "peek_offset")?;
 
         let lines: Vec<String> = data
             .iter()

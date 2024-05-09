@@ -126,7 +126,7 @@ impl<'a> Vim<'a> {
     }
 
     pub fn nvim_buf_add_highlight(
-        &self, buffer: usize, namespace: i32, hl_group: String, line: i32, col_start: i32, col_end: i32,
+        &self, buffer: usize, namespace: i32, hl_group: &str, line: i32, col_start: i32, col_end: i32,
     ) -> LuaResult<i32> {
         let func: Function = self
             .api
@@ -201,7 +201,7 @@ impl<'a> Vim<'a> {
         func.call((lines, insert_type, after, follow))
     }
 
-    pub fn nvim_set_hl(&self, namespace: i32, name: String, opts: HighlightOptions) -> LuaResult<()> {
+    pub fn nvim_set_hl(&self, namespace: i32, name: &str, opts: HighlightOptions) -> LuaResult<()> {
         let func: Function = self.api.get("nvim_set_hl").expect("can't load nvim_set_hl");
 
         func.call((namespace, name, self.lua.to_value(&opts).unwrap()))
@@ -230,13 +230,13 @@ impl<'a> Vim<'a> {
         func.call((window, force))
     }
 
-    pub fn nvim_buf_set_var(&self, buffer: usize, name: String, value: LuaValue) -> LuaResult<()> {
+    pub fn nvim_buf_set_var(&self, buffer: usize, name: &str, value: LuaValue) -> LuaResult<()> {
         let func: Function = self.api.get("nvim_buf_set_var").expect("can't load nvim_buf_set_var");
 
         func.call((buffer, name, value))
     }
 
-    pub fn nvim_buf_get_var<R: FromLuaMulti<'a>>(&self, buffer: usize, name: String) -> LuaResult<R> {
+    pub fn nvim_buf_get_var<R: FromLuaMulti<'a>>(&self, buffer: usize, name: &str) -> LuaResult<R> {
         let func: Function = self.api.get("nvim_buf_get_var").expect("can't load nvim_buf_get_var");
 
         func.call::<_, R>((buffer, name))
@@ -260,7 +260,7 @@ impl<'a> Vim<'a> {
         func.call(())
     }
 
-    pub fn nvim_get_option_value(&self, name: String, opts: GetOptionValue) -> LuaResult<bool> {
+    pub fn nvim_get_option_value(&self, name: &str, opts: GetOptionValue) -> LuaResult<bool> {
         let func: Function = self
             .api
             .get("nvim_get_option_value")
@@ -275,7 +275,7 @@ impl<'a> Vim<'a> {
         func.call(buffer)
     }
 
-    pub fn nvim_buf_set_keymap(&self, buffer: usize, mode: Mode, lhs: String, callback: Function) -> LuaResult<()> {
+    pub fn nvim_buf_set_keymap(&self, buffer: usize, mode: Mode, lhs: &str, callback: Function) -> LuaResult<()> {
         let func: Function = self.api.get("nvim_buf_set_keymap").expect("can't load nvim_set_keymap");
         let opts = self.lua.create_table()?;
         opts.set("callback", callback)?;
@@ -291,7 +291,7 @@ impl<'a> Vim<'a> {
         func.call(window)
     }
 
-    pub fn edit_file(&self, filename: String) -> LuaResult<()> {
+    pub fn edit_file(&self, filename: &str) -> LuaResult<()> {
         let cmd: Table = self.vim.get("cmd").expect("can't load vim.cmd");
         let edit: Function = cmd.get("edit").expect("can't load vim.cmd.edit");
 

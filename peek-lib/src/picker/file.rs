@@ -45,15 +45,15 @@ pub fn on_open(lua: &Lua) -> Function {
     lua.create_function(|lua, ()| {
         let vim = Vim::new(lua);
         let buffer = vim.nvim_get_current_buf().unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Normal, "<ESC>".into(), functions::exit(lua))
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Normal, "<ESC>", functions::exit(lua))
             .unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<ESC>".into(), functions::exit(lua))
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<ESC>", functions::exit(lua))
             .unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-j>".into(), functions::select_down(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Down>".into(), functions::select_down(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-k>".into(), functions::select_up(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Up>".into(), functions::select_up(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<CR>".into(), open_file(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-j>", functions::select_down(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Down>", functions::select_down(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-k>", functions::select_up(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Up>", functions::select_up(lua))?;
+        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<CR>", open_file(lua))?;
 
         Ok(())
     })
@@ -69,7 +69,7 @@ pub fn open_file(lua: &Lua) -> Function {
             let origin_window: usize = functions::origin_window(lua).call(())?;
             let inner_func = lua.create_function(move |lua, ()| {
                 let vim = Vim::new(lua);
-                vim.edit_file(file.path.clone()).ok();
+                vim.edit_file(file.path.as_str()).ok();
                 Ok(())
             })?;
             functions::exit(lua).call(())?;
