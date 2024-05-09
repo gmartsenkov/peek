@@ -2,7 +2,7 @@ use mlua::{FromLua, Function, Lua, LuaSerdeExt};
 use serde::{Deserialize, Serialize};
 
 use crate::vim::{GetOptionValue, Vim};
-use crate::{functions, search};
+use crate::{functions, search, Config};
 
 #[derive(Serialize, Deserialize)]
 struct Buffer {
@@ -10,22 +10,9 @@ struct Buffer {
     name: String,
 }
 
-#[derive(Deserialize, Debug)]
-struct Config {
-    cwd: Option<String>,
-}
-
 impl<'lua> FromLua<'lua> for Buffer {
     fn from_lua(value: mlua::prelude::LuaValue<'lua>, lua: &'lua Lua) -> mlua::prelude::LuaResult<Self> {
         lua.from_value(value)
-    }
-}
-
-impl<'lua> FromLua<'lua> for Config {
-    fn from_lua(value: mlua::prelude::LuaValue<'lua>, lua: &'lua Lua) -> mlua::prelude::LuaResult<Self> {
-        let mut options = mlua::DeserializeOptions::new();
-        options.deny_unsupported_types = false;
-        lua.from_value_with(value, options)
     }
 }
 
@@ -52,9 +39,7 @@ pub fn filter(lua: &Lua) -> Function {
 
 fn listed_buffers(lua: &Lua) -> Vec<Buffer> {
     let vim = Vim::new(lua);
-    let config = vim
-        .nvim_buf_get_var(0, "peek_config".into())
-        .unwrap_or(Config { cwd: None });
+    let config = Config::new(lua);
     let buffer_ids = vim.nvim_list_bufs().unwrap();
     buffer_ids
         .into_iter()
