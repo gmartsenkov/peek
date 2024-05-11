@@ -120,11 +120,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
 
                 let vim = Vim::new(lua);
                 vim.nvim_buf_set_var(buffer, "peek_results", lua.to_value(&search_results).unwrap())?;
-                vim.nvim_buf_set_var(
-                    buffer,
-                    "peek_results_count",
-                    lua.to_value(&search_results.len()).unwrap(),
-                )?;
+                vim.nvim_buf_set_var(buffer, "peek_results_count", lua.to_value(&search_results.len()).unwrap())?;
                 vim.nvim_buf_set_var(buffer, "peek_cursor", LuaValue::Integer(1))?;
                 vim.nvim_buf_set_var(buffer, "peek_offset", LuaValue::Integer(0))?;
                 render(lua).call(())?;
