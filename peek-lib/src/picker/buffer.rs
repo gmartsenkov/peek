@@ -1,3 +1,4 @@
+use mlua::prelude::*;
 use mlua::{FromLua, Function, Lua, LuaSerdeExt};
 use serde::{Deserialize, Serialize};
 
@@ -5,36 +6,33 @@ use crate::vim::{GetOptionValue, Vim};
 use crate::{functions, search, Config};
 
 #[derive(Serialize, Deserialize)]
-struct Buffer {
+pub struct Buffer {
     id: usize,
     name: String,
 }
 
 impl<'lua> FromLua<'lua> for Buffer {
-    fn from_lua(value: mlua::prelude::LuaValue<'lua>, lua: &'lua Lua) -> mlua::prelude::LuaResult<Self> {
+    fn from_lua(value: LuaValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
         lua.from_value(value)
     }
 }
 
-pub fn filter(lua: &Lua) -> Function {
-    lua.create_function(|lua, prompt: String| {
-        let _vim = Vim::new(lua);
-        let listed_buffers = listed_buffers(lua);
-        let buffer_names: String = listed_buffers
-            .iter()
-            .map(|x| x.name.clone())
-            .collect::<Vec<String>>()
-            .join("\n");
-        let matches = search::fzf(prompt, buffer_names.as_bytes().to_vec());
-        let filtered_buffers: Vec<Buffer> = listed_buffers
-            .into_iter()
-            .filter(|x| matches.contains(&x.name))
-            .collect();
+pub fn filter(lua: &Lua, prompt: String) -> LuaResult<LuaValue> {
+    let _vim = Vim::new(lua);
+    let listed_buffers = listed_buffers(lua);
+    let buffer_names: String = listed_buffers
+        .iter()
+        .map(|x| x.name.clone())
+        .collect::<Vec<String>>()
+        .join("\n");
+    let matches = search::fzf(prompt, buffer_names.as_bytes().to_vec());
+    let filtered_buffers: Vec<Buffer> = listed_buffers
+        .into_iter()
+        .filter(|x| matches.contains(&x.name))
+        .collect();
 
-        let result = lua.to_value(&filtered_buffers)?;
-        Ok(result)
-    })
-    .unwrap()
+    let result = lua.to_value(&filtered_buffers)?;
+    Ok(result)
 }
 
 fn listed_buffers(lua: &Lua) -> Vec<Buffer> {
@@ -62,27 +60,24 @@ fn listed_buffers(lua: &Lua) -> Vec<Buffer> {
         .collect()
 }
 
-pub fn to_line(lua: &Lua) -> Function {
-    lua.create_function(|_lua, buffer: Buffer| Ok(buffer.name)).unwrap()
+pub fn to_line(_lua: &Lua, buffer: Buffer) -> LuaResult<String> {
+    Ok(buffer.name)
 }
 
-pub fn on_open(lua: &Lua) -> Function {
-    lua.create_function(|lua, ()| {
-        let vim = Vim::new(lua);
-        let buffer = vim.nvim_get_current_buf().unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Normal, "<ESC>", functions::exit(lua))
-            .unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<ESC>", functions::exit(lua))
-            .unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-j>", functions::select_down(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Down>", functions::select_down(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-k>", functions::select_up(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Up>", functions::select_up(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<CR>", open_buffer(lua))?;
+pub fn on_open(lua: &Lua, _: ()) -> LuaResult<()> {
+    let vim = Vim::new(lua);
+    let buffer = vim.nvim_get_current_buf().unwrap();
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Normal, "<ESC>", functions::exit(lua))
+        .unwrap();
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<ESC>", functions::exit(lua))
+        .unwrap();
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-j>", functions::select_down(lua))?;
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Down>", functions::select_down(lua))?;
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-k>", functions::select_up(lua))?;
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Up>", functions::select_up(lua))?;
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<CR>", open_buffer(lua))?;
 
-        Ok(())
-    })
-    .unwrap()
+    Ok(())
 }
 
 pub fn open_buffer(lua: &Lua) -> Function {

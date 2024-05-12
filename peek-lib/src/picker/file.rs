@@ -1,3 +1,4 @@
+use mlua::prelude::*;
 use mlua::{FromLua, Function, Lua, LuaSerdeExt};
 use serde::{Deserialize, Serialize};
 
@@ -5,54 +6,48 @@ use crate::functions;
 use crate::vim::Vim;
 
 #[derive(Serialize, Deserialize)]
-struct File {
+pub struct File {
     path: String,
 }
 
 impl<'lua> FromLua<'lua> for File {
-    fn from_lua(value: mlua::prelude::LuaValue<'lua>, lua: &'lua Lua) -> mlua::prelude::LuaResult<Self> {
+    fn from_lua(value: LuaValue<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
         lua.from_value(value)
     }
 }
 
-pub fn filter(lua: &Lua) -> Function {
-    lua.create_function(|lua, prompt: String| {
-        let mut binding = std::process::Command::new("fd");
-        let cmd = binding.arg("-t").arg("file").output().unwrap().stdout;
-        let fzf_output = crate::search::fzf(prompt, cmd);
+pub fn filter(lua: &Lua, prompt: String) -> LuaResult<LuaValue> {
+    let mut binding = std::process::Command::new("fd");
+    let cmd = binding.arg("-t").arg("file").output().unwrap().stdout;
+    let fzf_output = crate::search::fzf(prompt, cmd);
 
-        let search_results: Vec<File> = fzf_output
-            .iter()
-            .take(500)
-            .map(|x| File { path: x.to_owned() })
-            .collect();
-        let result = lua.to_value(&search_results)?;
-        Ok(result)
-    })
-    .unwrap()
+    let search_results: Vec<File> = fzf_output
+        .iter()
+        .take(500)
+        .map(|x| File { path: x.to_owned() })
+        .collect();
+    let result = lua.to_value(&search_results)?;
+    Ok(result)
 }
 
-pub fn to_line(lua: &Lua) -> Function {
-    lua.create_function(|_lua, data: File| Ok(data.path)).unwrap()
+pub fn to_line(_lua: &Lua, data: File) -> LuaResult<String> {
+    Ok(data.path)
 }
 
-pub fn on_open(lua: &Lua) -> Function {
-    lua.create_function(|lua, ()| {
-        let vim = Vim::new(lua);
-        let buffer = vim.nvim_get_current_buf().unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Normal, "<ESC>", functions::exit(lua))
-            .unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<ESC>", functions::exit(lua))
-            .unwrap();
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-j>", functions::select_down(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Down>", functions::select_down(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-k>", functions::select_up(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Up>", functions::select_up(lua))?;
-        vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<CR>", open_file(lua))?;
+pub fn on_open(lua: &Lua, _: ()) -> LuaResult<()> {
+    let vim = Vim::new(lua);
+    let buffer = vim.nvim_get_current_buf().unwrap();
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Normal, "<ESC>", functions::exit(lua))
+        .unwrap();
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<ESC>", functions::exit(lua))
+        .unwrap();
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-j>", functions::select_down(lua))?;
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Down>", functions::select_down(lua))?;
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<C-k>", functions::select_up(lua))?;
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<Up>", functions::select_up(lua))?;
+    vim.nvim_buf_set_keymap(buffer, crate::vim::Mode::Insert, "<CR>", open_file(lua))?;
 
-        Ok(())
-    })
-    .unwrap()
+    Ok(())
 }
 
 pub fn open_file(lua: &Lua) -> Function {
