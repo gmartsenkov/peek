@@ -61,7 +61,6 @@ impl<'lua> FromLua<'lua> for Config<'lua> {
 
 pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     // simple_logging::log_to_file("test.log", LevelFilter::Info).unwrap();
-    let initial_data_function: mlua::Function = config.get("initial_data")?;
 
     let vim = Vim::new(lua);
     let buffer = vim.nvim_create_buffer(false, true)?;
@@ -98,7 +97,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
         },
     )?;
 
-    let initial_data: Vec<mlua::Value> = initial_data_function.call(())?;
+    let initial_data: Vec<mlua::Value> = conf.filter("".to_string())?;
     vim.nvim_buf_set_var(buffer, "peek_results", lua.to_value(&initial_data).unwrap())?;
     vim.nvim_buf_set_var(buffer, "peek_results_count", lua.to_value(&initial_data.len()).unwrap())?;
     render(lua).call(())?;

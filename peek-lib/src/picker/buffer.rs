@@ -62,11 +62,6 @@ fn listed_buffers(lua: &Lua) -> Vec<Buffer> {
         .collect()
 }
 
-pub fn initial_data(lua: &Lua) -> Function {
-    lua.create_function(|lua, ()| filter(lua).call::<_, Vec<mlua::Value>>(""))
-        .unwrap()
-}
-
 pub fn to_line(lua: &Lua) -> Function {
     lua.create_function(|_lua, buffer: Buffer| Ok(buffer.name)).unwrap()
 }

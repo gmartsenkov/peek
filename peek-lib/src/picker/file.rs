@@ -32,11 +32,6 @@ pub fn filter(lua: &Lua) -> Function {
     .unwrap()
 }
 
-pub fn initial_data(lua: &Lua) -> Function {
-    lua.create_function(|lua, ()| filter(lua).call::<_, Vec<mlua::Value>>(""))
-        .unwrap()
-}
-
 pub fn to_line(lua: &Lua) -> Function {
     lua.create_function(|_lua, data: File| Ok(data.path)).unwrap()
 }
