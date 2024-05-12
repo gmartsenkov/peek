@@ -275,11 +275,14 @@ impl<'a> Vim<'a> {
         func.call(buffer)
     }
 
-    pub fn nvim_buf_set_keymap(&self, buffer: usize, mode: Mode, lhs: &str, callback: Function) -> LuaResult<()> {
+    pub fn nvim_buf_set_keymap(&self, buffer: usize, mode: &str, lhs: &str, rhs: LuaValue) -> LuaResult<()> {
         let func: Function = self.api.get("nvim_buf_set_keymap").expect("can't load nvim_set_keymap");
         let opts = self.lua.create_table()?;
-        opts.set("callback", callback)?;
-        func.call((buffer, self.lua.to_value(&mode).unwrap(), lhs, "", opts))
+        if let LuaValue::Function(callback) = rhs {
+            opts.set("callback", callback)?;
+            return func.call((buffer, mode, lhs, "", opts));
+        }
+        func.call((buffer, mode, lhs, rhs, opts))
     }
 
     pub fn nvim_set_current_win(&self, window: usize) -> LuaResult<()> {
