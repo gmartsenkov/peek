@@ -2,6 +2,7 @@ use std::io::Write;
 
 pub fn fzf(prompt: String, stdout: Vec<u8>) -> Vec<String> {
     let mut command = std::process::Command::new("fzf")
+        .arg("--exact")
         .arg("--filter")
         .arg(&prompt)
         .stdin(std::process::Stdio::piped())
