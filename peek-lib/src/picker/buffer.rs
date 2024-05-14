@@ -64,20 +64,6 @@ pub fn to_line(_lua: &Lua, buffer: Buffer) -> LuaResult<String> {
     Ok(buffer.name)
 }
 
-pub fn on_open(lua: &Lua, _: ()) -> LuaResult<()> {
-    let vim = Vim::new(lua);
-    let buffer = vim.nvim_get_current_buf().unwrap();
-    vim.nvim_buf_set_keymap(buffer, "n", "<ESC>", LuaValue::Function(lua.create_function(functions::exit)?))?;
-    vim.nvim_buf_set_keymap(buffer, "i", "<ESC>", LuaValue::Function(lua.create_function(functions::exit)?))?;
-    vim.nvim_buf_set_keymap(buffer, "i", "<C-j>", LuaValue::Function(lua.create_function(functions::select_down)?))?;
-    vim.nvim_buf_set_keymap(buffer, "i", "<Down>", LuaValue::Function(lua.create_function(functions::select_down)?))?;
-    vim.nvim_buf_set_keymap(buffer, "i", "<C-k>", LuaValue::Function(lua.create_function(functions::select_up)?))?;
-    vim.nvim_buf_set_keymap(buffer, "i", "<Up>", LuaValue::Function(lua.create_function(functions::select_up)?))?;
-    vim.nvim_buf_set_keymap(buffer, "i", "<CR>", LuaValue::Function(lua.create_function(open_buffer)?))?;
-
-    Ok(())
-}
-
 pub fn open_buffer(lua: &Lua, _: ()) -> LuaResult<()> {
     let selected: Option<mlua::Value> = functions::selected_value(lua, ())?;
 

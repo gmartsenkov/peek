@@ -80,12 +80,13 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     vim.nvim_buf_set_var(buffer, "peek_cursor", LuaValue::Integer(0))?;
     vim.nvim_buf_set_var(buffer, "peek_limit", LuaValue::Integer(20))?;
     vim.nvim_buf_set_var(buffer, "peek_offset", LuaValue::Integer(0))?;
-    vim.nvim_buf_set_var(buffer, "peek_config", LuaValue::Table(config))?;
+    vim.nvim_buf_set_var(buffer, "peek_config", LuaValue::Table(config.clone()))?;
 
     let conf = Config::new(lua);
 
-    // Assign mappings
-    conf.on_open_callback().unwrap();
+    let custom_mappings = config.get("mappings").unwrap_or(lua.create_table().unwrap());
+    apply_mappings(lua, buffer, default_mappings(lua));
+    apply_mappings(lua, buffer, custom_mappings);
 
     // Define highlights (need to be moved outside)
     vim.nvim_set_hl(
@@ -158,4 +159,46 @@ pub fn render(lua: &Lua) -> mlua::Function {
         Ok(())
     })
     .unwrap()
+}
+
+pub fn apply_mappings(lua: &Lua, buffer: usize, table: mlua::Table) {
+    let vim = Vim::new(lua);
+    for pair in table.pairs::<String, mlua::Table>() {
+        let (mode, keymaps) = pair.unwrap();
+
+        for pair in keymaps.pairs::<String, mlua::Value>() {
+            let (lhs, rhs) = pair.unwrap();
+            vim.nvim_buf_set_keymap(buffer, mode.as_str(), lhs.as_str(), rhs)
+                .unwrap();
+        }
+    }
+}
+
+pub fn default_mappings(lua: &Lua) -> mlua::Table<'_> {
+    let table = lua.create_table().unwrap();
+    let insert = lua.create_table().unwrap();
+    let normal = lua.create_table().unwrap();
+
+    normal
+        .set("<ESC>", lua.create_function(functions::exit).unwrap())
+        .unwrap();
+    insert
+        .set("<ESC>", lua.create_function(functions::exit).unwrap())
+        .unwrap();
+    insert
+        .set("<C-j>", lua.create_function(functions::select_down).unwrap())
+        .unwrap();
+    insert
+        .set("<Down>", lua.create_function(functions::select_down).unwrap())
+        .unwrap();
+    insert
+        .set("<C-k>", lua.create_function(functions::select_up).unwrap())
+        .unwrap();
+    insert
+        .set("<Up>", lua.create_function(functions::select_up).unwrap())
+        .unwrap();
+
+    table.set("i", insert).unwrap();
+    table.set("n", normal).unwrap();
+    table
 }
