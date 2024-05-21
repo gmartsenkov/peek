@@ -186,7 +186,7 @@ impl<'a> Vim<'a> {
         func.call(window)
     }
 
-    pub fn nvim_win_set_cursor(&self, window: i32, position: Vec<i32>) -> LuaResult<()> {
+    pub fn nvim_win_set_cursor(&self, window: usize, position: Vec<i32>) -> LuaResult<()> {
         let func: Function = self
             .api
             .get("nvim_win_set_cursor")

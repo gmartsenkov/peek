@@ -60,7 +60,7 @@ impl<'lua> FromLua<'lua> for Config<'lua> {
 }
 
 pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
-    // simple_logging::log_to_file("test.log", LevelFilter::Info).unwrap();
+    // simple_logging::log_to_file("test.log", log::LevelFilter::Info).unwrap();
 
     let vim = Vim::new(lua);
     let buffer = vim.nvim_create_buffer(false, true)?;
@@ -83,6 +83,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     vim.nvim_buf_set_var(buffer, "peek_config", LuaValue::Table(config.clone()))?;
 
     let conf = Config::new(lua);
+    let prompt = config.get::<_, String>("prompt");
 
     let custom_mappings = config.get("mappings").unwrap_or(lua.create_table().unwrap());
     apply_mappings(lua, buffer, default_mappings(lua));
@@ -136,7 +137,14 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     let buf_attach_options = vim::BufferAttachOptions {
         on_lines: Some(buff_attach_function),
     };
-    vim.nvim_buf_attach(buffer, false, buf_attach_options)
+    vim.nvim_buf_attach(buffer, false, buf_attach_options)?;
+
+    if let Ok(p) = prompt {
+        vim.nvim_buf_set_lines(buffer, 0, 1, false, vec![p])?;
+        vim.nvim_win_set_cursor(win, vec![1, 100])?;
+    }
+
+    Ok(())
 }
 
 pub fn render(lua: &Lua) -> mlua::Function {

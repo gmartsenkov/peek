@@ -7,6 +7,7 @@ fn peek(lua: &Lua) -> LuaResult<LuaTable> {
     let builtins = lua.create_table()?;
     builtins.set("find_file", lua.create_function(peek_lib::picker::file_picker)?)?;
     builtins.set("find_buffer", lua.create_function(peek_lib::picker::buffer_picker)?)?;
+    builtins.set("file_explorer", lua.create_function(peek_lib::picker::file_explorer_picker)?)?;
 
     exports.set("builtins", builtins)?;
     Ok(exports)
