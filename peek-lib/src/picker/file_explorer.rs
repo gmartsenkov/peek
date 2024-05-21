@@ -71,11 +71,11 @@ pub fn to_line(_lua: &Lua, data: File) -> LuaResult<String> {
 }
 
 pub fn select_option(lua: &Lua, _: ()) -> LuaResult<()> {
+    let vim = Vim::new(lua);
     let selected: Option<mlua::Value> = functions::selected_value(lua, ())?;
 
     if let Some(selected_buffer) = selected {
         let file: File = lua.from_value(selected_buffer)?;
-        let vim = Vim::new(lua);
 
         let file_path = Path::new(&file.full_path);
         if let Ok(m) = file_path.metadata() {
@@ -86,20 +86,29 @@ pub fn select_option(lua: &Lua, _: ()) -> LuaResult<()> {
             }
 
             if m.is_file() {
-                let origin_window: usize = functions::origin_window(lua, ())?;
-                let inner_func = lua.create_function(move |lua, ()| {
-                    let vim = Vim::new(lua);
-                    vim.edit_file(file.full_path.as_str()).ok();
-                    Ok(())
-                })?;
-                functions::exit(lua, ())?;
-                vim.nvim_win_call(origin_window, inner_func)?;
-                vim.nvim_set_current_win(origin_window)?;
+                open_file(lua, file.full_path)?;
             }
         }
+    } else {
+        let lines = vim.nvim_buf_get_lines(0, 0, 1, false)?;
+        let prompt = lines.first().unwrap();
+        open_file(lua, prompt.to_string())?;
     }
 
     Ok(())
+}
+
+fn open_file(lua: &Lua, path: String) -> LuaResult<()> {
+    let vim = Vim::new(lua);
+    let origin_window: usize = functions::origin_window(lua, ())?;
+    let inner_func = lua.create_function(move |lua, ()| {
+        let vim = Vim::new(lua);
+        vim.edit_file(path.as_str()).ok();
+        Ok(())
+    })?;
+    functions::exit(lua, ())?;
+    vim.nvim_win_call(origin_window, inner_func)?;
+    vim.nvim_set_current_win(origin_window)
 }
 
 pub fn backspace(lua: &Lua, _: ()) -> LuaResult<()> {
