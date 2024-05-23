@@ -140,8 +140,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     vim.nvim_buf_attach(buffer, false, buf_attach_options)?;
 
     if let Ok(p) = prompt {
-        vim.nvim_buf_set_lines(buffer, 0, 1, false, vec![p])?;
-        vim.nvim_win_set_cursor(win, vec![1, 100])?;
+        crate::update_prompt(lua, p)?;
     }
 
     Ok(())
@@ -209,4 +208,10 @@ pub fn default_mappings(lua: &Lua) -> mlua::Table<'_> {
     table.set("i", insert).unwrap();
     table.set("n", normal).unwrap();
     table
+}
+
+pub fn update_prompt(lua: &Lua, prompt: String) -> LuaResult<()> {
+    let vim = Vim::new(lua);
+    vim.nvim_buf_set_lines(0, 0, 1, false, vec![prompt])?;
+    vim.nvim_win_set_cursor(0, vec![1, 1000])
 }

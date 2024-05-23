@@ -81,8 +81,7 @@ pub fn select_option(lua: &Lua, _: ()) -> LuaResult<()> {
         if let Ok(m) = file_path.metadata() {
             if m.is_dir() {
                 let new_path = format!("{}/", file.full_path);
-                vim.nvim_buf_set_lines(0, 0, 1, false, vec![new_path])?;
-                vim.nvim_win_set_cursor(0, vec![1, 100])?;
+                crate::update_prompt(lua, new_path)?;
             }
 
             if m.is_file() {
@@ -93,6 +92,24 @@ pub fn select_option(lua: &Lua, _: ()) -> LuaResult<()> {
         let lines = vim.nvim_buf_get_lines(0, 0, 1, false)?;
         let prompt = lines.first().unwrap();
         open_file(lua, prompt.to_string())?;
+    }
+
+    Ok(())
+}
+
+pub fn tab(lua: &Lua, _: ()) -> LuaResult<()> {
+    let selected: Option<mlua::Value> = functions::selected_value(lua, ())?;
+
+    if let Some(selected_buffer) = selected {
+        let file: File = lua.from_value(selected_buffer)?;
+        let path = Path::new(&file.full_path);
+        if let Ok(meta) = path.metadata() {
+            if meta.is_dir() {
+                crate::update_prompt(lua, format!("{}/", file.full_path))?;
+            } else {
+                crate::update_prompt(lua, file.full_path)?;
+            }
+        }
     }
 
     Ok(())
@@ -119,16 +136,13 @@ pub fn backspace(lua: &Lua, _: ()) -> LuaResult<()> {
     if let Ok(meta) = path.metadata() {
         if meta.is_dir() {
             let new_path = path.parent().unwrap().as_os_str().to_str().to_owned().unwrap();
-            vim.nvim_buf_set_lines(0, 0, 1, false, vec![format!("{}/", new_path)])?;
-            vim.nvim_win_set_cursor(0, vec![1, 100])?;
-
+            crate::update_prompt(lua, format!("{}/", new_path))?;
             return Ok(());
         }
     }
 
     prompt.pop();
-    vim.nvim_buf_set_lines(0, 0, 1, false, vec![prompt])?;
-    vim.nvim_win_set_cursor(0, vec![1, 100])?;
+    crate::update_prompt(lua, prompt)?;
 
     Ok(())
 }

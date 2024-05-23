@@ -36,6 +36,7 @@ pub fn file_explorer_picker(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     let insert = lua.create_table()?;
     insert.set("<CR>", lua.create_function(picker::file_explorer::select_option)?)?;
     insert.set("<BS>", lua.create_function(picker::file_explorer::backspace)?)?;
+    insert.set("<Tab>", lua.create_function(picker::file_explorer::tab)?)?;
     mappings.set("i", insert)?;
     config.set("filter", lua.create_function(picker::file_explorer::filter)?)?;
     config.set("to_line", lua.create_function(picker::file_explorer::to_line)?)?;
