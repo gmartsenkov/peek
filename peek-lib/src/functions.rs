@@ -55,6 +55,7 @@ pub fn exit(lua: &Lua, _: ()) -> LuaResult<()> {
     let vim = Vim::new(lua);
     let buffer = vim.nvim_get_current_buf().unwrap();
     let window = vim.nvim_get_current_win().unwrap();
+    let origin_window: usize = origin_window(lua, ())?;
     vim.nvim_win_close(window, true)?;
     lua.load("vim.cmd('stopinsert')").eval()?;
     vim.nvim_buf_delete(
@@ -63,7 +64,8 @@ pub fn exit(lua: &Lua, _: ()) -> LuaResult<()> {
             force: Some(true),
             unload: None,
         },
-    )
+    )?;
+    vim.nvim_set_current_win(origin_window)
 }
 
 pub fn selected_value(lua: &Lua, _: ()) -> LuaResult<Option<mlua::Value>> {
