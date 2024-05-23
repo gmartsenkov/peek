@@ -52,6 +52,10 @@ pub struct HighlightOptions {
     pub fg: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bg: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub italic: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bold: Option<bool>,
 }
 
 impl mlua::UserData for WindowOptions {}

@@ -1,4 +1,5 @@
 use crate::vim::{BufferDeleteOptions, Vim};
+use crate::Config;
 use mlua::prelude::*;
 
 pub fn select_down(lua: &Lua, _: ()) -> LuaResult<()> {
@@ -79,6 +80,24 @@ pub fn selected_value(lua: &Lua, _: ()) -> LuaResult<Option<mlua::Value>> {
         Some(v) => Ok(Some(v.clone())),
         None => Ok(None),
     }
+}
+
+pub fn backspace(lua: &Lua, _: ()) -> LuaResult<()> {
+    let vim = Vim::new(lua);
+    let config = Config::new(lua);
+    let lines = vim.nvim_buf_get_lines(0, 0, 1, false)?;
+    let mut prompt = lines.first().unwrap().clone();
+
+    if config.title.unwrap() == prompt {
+        vim.nvim_win_set_cursor(0, vec![1, 1000])?;
+        return Ok(());
+    }
+
+    prompt.pop();
+    vim.nvim_buf_set_lines(0, 0, 1, false, vec![prompt])?;
+    vim.nvim_win_set_cursor(0, vec![1, 1000])?;
+
+    Ok(())
 }
 
 pub fn origin_window(lua: &Lua, _: ()) -> LuaResult<usize> {

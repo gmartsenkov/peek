@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::functions;
 use crate::vim::Vim;
+use crate::Config;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct File {
@@ -72,6 +73,8 @@ pub fn to_line(_lua: &Lua, data: File) -> LuaResult<String> {
 
 pub fn select_option(lua: &Lua, _: ()) -> LuaResult<()> {
     let vim = Vim::new(lua);
+    let config = Config::new(lua);
+    let title = config.title.unwrap();
     let selected: Option<mlua::Value> = functions::selected_value(lua, ())?;
 
     if let Some(selected_buffer) = selected {
@@ -81,8 +84,8 @@ pub fn select_option(lua: &Lua, _: ()) -> LuaResult<()> {
         if let Ok(m) = file_path.metadata() {
             if m.is_dir() {
                 let new_path = format!("{}/", file.full_path);
-                vim.nvim_buf_set_lines(0, 0, 1, false, vec![new_path])?;
-                vim.nvim_win_set_cursor(0, vec![1, 100])?;
+                vim.nvim_buf_set_lines(0, 0, 1, false, vec![format!("{}{}", title, new_path)])?;
+                vim.nvim_win_set_cursor(0, vec![1, 1000])?;
             }
 
             if m.is_file() {
@@ -91,7 +94,13 @@ pub fn select_option(lua: &Lua, _: ()) -> LuaResult<()> {
         }
     } else {
         let lines = vim.nvim_buf_get_lines(0, 0, 1, false)?;
-        let prompt = lines.first().unwrap();
+        let prompt = lines
+            .first()
+            .unwrap()
+            .clone()
+            .chars()
+            .skip(title.len())
+            .collect::<String>();
         open_file(lua, prompt.to_string())?;
     }
 
@@ -120,7 +129,7 @@ pub fn backspace(lua: &Lua, _: ()) -> LuaResult<()> {
         if meta.is_dir() {
             let new_path = path.parent().unwrap().as_os_str().to_str().to_owned().unwrap();
             vim.nvim_buf_set_lines(0, 0, 1, false, vec![format!("{}/", new_path)])?;
-            vim.nvim_win_set_cursor(0, vec![1, 100])?;
+            vim.nvim_win_set_cursor(0, vec![1, 1000])?;
 
             return Ok(());
         }
@@ -128,7 +137,7 @@ pub fn backspace(lua: &Lua, _: ()) -> LuaResult<()> {
 
     prompt.pop();
     vim.nvim_buf_set_lines(0, 0, 1, false, vec![prompt])?;
-    vim.nvim_win_set_cursor(0, vec![1, 100])?;
+    vim.nvim_win_set_cursor(0, vec![1, 1000])?;
 
     Ok(())
 }

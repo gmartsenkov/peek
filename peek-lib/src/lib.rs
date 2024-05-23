@@ -11,6 +11,7 @@ pub struct Config<'a> {
     #[serde(skip)]
     table: Option<mlua::Table<'a>>,
     pub cwd: Option<String>,
+    pub title: Option<String>,
 }
 
 impl<'a> Config<'a> {
@@ -83,7 +84,6 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     vim.nvim_buf_set_var(buffer, "peek_config", LuaValue::Table(config.clone()))?;
 
     let conf = Config::new(lua);
-    let prompt = config.get::<_, String>("prompt");
 
     let custom_mappings = config.get("mappings").unwrap_or(lua.create_table().unwrap());
     apply_mappings(lua, buffer, default_mappings(lua));
@@ -96,9 +96,24 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
         vim::HighlightOptions {
             bg: Some("purple".into()),
             fg: Some("white".into()),
+            bold: None,
+            italic: None,
         },
     )?;
 
+    vim.nvim_set_hl(
+        0,
+        "PeekPrompt",
+        vim::HighlightOptions {
+            bg: None,
+            fg: None,
+            bold: Some(true),
+            italic: Some(true),
+        },
+    )?;
+
+    vim.nvim_buf_set_lines(buffer, 0, 1, false, vec![conf.title.clone().unwrap()])?;
+    vim.nvim_win_set_cursor(win, vec![1, 1000])?;
     let initial_data: Vec<mlua::Value> = conf.filter("".to_string())?;
     vim.nvim_buf_set_var(buffer, "peek_results", lua.to_value(&initial_data).unwrap())?;
     vim.nvim_buf_set_var(buffer, "peek_results_count", lua.to_value(&initial_data.len()).unwrap())?;
@@ -112,8 +127,16 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
             }
 
             let vim = Vim::new(lua);
+            let config = Config::new(lua);
             let lines = vim.nvim_buf_get_lines(buffer, 0, 1, false)?;
-            let prompt = lines.first().unwrap().clone();
+            let title = config.title.unwrap();
+            let prompt = lines
+                .first()
+                .unwrap()
+                .clone()
+                .chars()
+                .skip(title.len())
+                .collect::<String>();
 
             let callback = lua.create_function(move |lua, ()| {
                 let config = Config::new(lua);
@@ -139,9 +162,11 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     };
     vim.nvim_buf_attach(buffer, false, buf_attach_options)?;
 
+    let prompt = config.get::<_, String>("prompt");
+    let title = conf.title.clone().unwrap();
     if let Ok(p) = prompt {
-        vim.nvim_buf_set_lines(buffer, 0, 1, false, vec![p])?;
-        vim.nvim_win_set_cursor(win, vec![1, 100])?;
+        vim.nvim_buf_set_lines(buffer, 0, 1, false, vec![format!("{}{}", title, p)])?;
+        vim.nvim_win_set_cursor(win, vec![1, 1000])?;
     }
 
     Ok(())
@@ -204,6 +229,9 @@ pub fn default_mappings(lua: &Lua) -> mlua::Table<'_> {
         .unwrap();
     insert
         .set("<Up>", lua.create_function(functions::select_up).unwrap())
+        .unwrap();
+    insert
+        .set("<BS>", lua.create_function(functions::backspace).unwrap())
         .unwrap();
 
     table.set("i", insert).unwrap();
