@@ -76,6 +76,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     lua.load(format!("vim.cmd('file {}')", "File")).eval()?;
     lua.load("require('cmp').setup.buffer { enabled = false }").eval()?;
     lua.load("vim.cmd('set nonu')").eval()?;
+    lua.load("vim.cmd('set filetype=peek')").eval()?;
     vim.nvim_buf_set_var(buffer, "peek_origin_window", LuaValue::Integer(origin_win.try_into().unwrap()))?;
     vim.nvim_buf_set_var(buffer, "peek_cursor", LuaValue::Integer(0))?;
     vim.nvim_buf_set_var(buffer, "peek_limit", LuaValue::Integer(20))?;
