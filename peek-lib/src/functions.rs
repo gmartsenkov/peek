@@ -21,6 +21,7 @@ pub fn select_down(lua: &Lua, _: ()) -> LuaResult<()> {
         crate::render(lua).call(())?;
         vim.nvim_buf_clear_namespace(buffer, 101, 0, -1)?;
         vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection", cursor_position, 0, -1)?;
+        config.on_refresh_callback()?;
         return Ok(());
     }
 
@@ -45,6 +46,7 @@ pub fn select_up(lua: &Lua, _: ()) -> LuaResult<()> {
         crate::render(lua).call(())?;
         vim.nvim_buf_clear_namespace(buffer, 101, 0, -1)?;
         vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection", cursor_position, 0, -1)?;
+        config.on_refresh_callback()?;
         return Ok(());
     }
 
