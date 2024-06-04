@@ -1,9 +1,11 @@
 use crate::vim::{BufferDeleteOptions, Vim};
+use crate::Config;
 use mlua::prelude::*;
 
 pub fn select_down(lua: &Lua, _: ()) -> LuaResult<()> {
     let buffer = 0;
     let vim = Vim::new(lua);
+    let config = Config::new(lua);
     let total: i32 = vim.nvim_buf_get_var(buffer, "peek_results_count")?;
     let offset: i32 = vim.nvim_buf_get_var(buffer, "peek_offset")?;
     let limit: i32 = vim.nvim_buf_get_var(buffer, "peek_limit")?;
@@ -25,6 +27,7 @@ pub fn select_down(lua: &Lua, _: ()) -> LuaResult<()> {
     vim.nvim_buf_set_var(buffer, "peek_cursor", LuaValue::Integer(next.into()))?;
     vim.nvim_buf_clear_namespace(buffer, 101, 0, -1)?;
     vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection", next, 0, -1)?;
+    config.on_refresh_callback()?;
 
     Ok(())
 }
@@ -32,6 +35,7 @@ pub fn select_down(lua: &Lua, _: ()) -> LuaResult<()> {
 pub fn select_up(lua: &Lua, _: ()) -> LuaResult<()> {
     let buffer = 0;
     let vim = Vim::new(lua);
+    let config = Config::new(lua);
     let cursor_position = vim.nvim_buf_get_var::<i32>(buffer, "peek_cursor")?;
     let next = std::cmp::max(cursor_position - 1, 0);
     let offset: i32 = vim.nvim_buf_get_var(buffer, "peek_offset")?;
@@ -47,6 +51,7 @@ pub fn select_up(lua: &Lua, _: ()) -> LuaResult<()> {
     vim.nvim_buf_set_var(buffer, "peek_cursor", LuaValue::Integer(next.into()))?;
     vim.nvim_buf_clear_namespace(buffer, 101, 0, -1)?;
     vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection", next, 0, -1)?;
+    config.on_refresh_callback()?;
 
     Ok(())
 }
@@ -66,6 +71,19 @@ pub fn exit(lua: &Lua, _: ()) -> LuaResult<()> {
         },
     )?;
     vim.nvim_set_current_win(origin_window)
+}
+
+pub fn result_count(lua: &Lua, _: ()) -> LuaResult<usize> {
+    let vim = Vim::new(lua);
+    vim.nvim_buf_get_var(0, "peek_results_count")
+}
+
+pub fn position(lua: &Lua, _: ()) -> LuaResult<usize> {
+    let vim = Vim::new(lua);
+    let cursor: usize = vim.nvim_buf_get_var(0, "peek_cursor")?;
+    let offset: usize = vim.nvim_buf_get_var(0, "peek_offset")?;
+
+    Ok(cursor + offset)
 }
 
 pub fn selected_value(lua: &Lua, _: ()) -> LuaResult<Option<mlua::Value>> {

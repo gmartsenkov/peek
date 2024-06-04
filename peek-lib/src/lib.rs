@@ -11,6 +11,7 @@ pub struct Config<'a> {
     #[serde(skip)]
     table: Option<mlua::Table<'a>>,
     pub cwd: Option<String>,
+    pub title: Option<String>,
 }
 
 impl<'a> Config<'a> {
@@ -44,6 +45,14 @@ impl<'a> Config<'a> {
             .get::<_, mlua::Function>("to_line")
             .unwrap()
             .call(value)
+    }
+
+    pub fn on_refresh_callback(&self) -> LuaResult<()> {
+        if let Ok(fun) = self.table.as_ref().unwrap().get::<_, mlua::Function>("on_refresh") {
+            fun.call::<_, ()>(())?;
+        }
+
+        Ok(())
     }
 }
 
@@ -84,6 +93,8 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     vim.nvim_buf_set_var(buffer, "peek_config", LuaValue::Table(config.clone()))?;
 
     let conf = Config::new(lua);
+    lua.load(format!("vim.cmd('file {}')", conf.title.clone().unwrap_or("Peek".to_string())))
+        .eval()?;
     let prompt = config.get::<_, String>("prompt");
 
     let custom_mappings = config.get("mappings").unwrap_or(lua.create_table().unwrap());
@@ -127,6 +138,7 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
                 vim.nvim_buf_set_var(buffer, "peek_offset", LuaValue::Integer(0))?;
                 render(lua).call(())?;
                 vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection", 1, 0, -1)?;
+                config.on_refresh_callback()?;
                 Ok(())
             })?;
             vim.vim_schedule(callback)?;
