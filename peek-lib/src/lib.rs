@@ -68,6 +68,32 @@ impl<'lua> FromLua<'lua> for Config<'lua> {
     }
 }
 
+pub fn setup(lua: &Lua, _: ()) -> LuaResult<()> {
+    let vim = Vim::new(lua);
+
+    vim.nvim_set_hl(
+        0,
+        "PeekSelection",
+        vim::HighlightOptions {
+            bg: Some("#383838".into()),
+            bold: Some(true),
+            ..Default::default()
+        },
+    )?;
+
+    vim.nvim_set_hl(
+        0,
+        "PeekPrompt",
+        vim::HighlightOptions {
+            fg: Some("purple".into()),
+            ..Default::default()
+        },
+    )?;
+    Ok(())
+}
+
+// lua vim.api.nvim_buf_set_extmark(0,vim.api.nvim_create_namespace("PeekSelection"),0,0, {hl_group = "PeekSelection", hl_eol = true, end_row=1})
+
 pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     // simple_logging::log_to_file("test.log", log::LevelFilter::Info).unwrap();
 
@@ -101,16 +127,6 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     apply_mappings(lua, buffer, default_mappings(lua));
     apply_mappings(lua, buffer, custom_mappings);
 
-    // Define highlights (need to be moved outside)
-    vim.nvim_set_hl(
-        0,
-        "PeekSelection",
-        vim::HighlightOptions {
-            bg: Some("purple".into()),
-            fg: Some("white".into()),
-        },
-    )?;
-
     let initial_data: Vec<mlua::Value> = conf.filter("".to_string())?;
     vim.nvim_buf_set_var(buffer, "peek_results", lua.to_value(&initial_data).unwrap())?;
     vim.nvim_buf_set_var(buffer, "peek_results_count", lua.to_value(&initial_data.len()).unwrap())?;
@@ -137,7 +153,12 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
                 vim.nvim_buf_set_var(buffer, "peek_cursor", LuaValue::Integer(1))?;
                 vim.nvim_buf_set_var(buffer, "peek_offset", LuaValue::Integer(0))?;
                 render(lua).call(())?;
-                vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection", 1, 0, -1)?;
+
+                let namespace = vim.nvim_create_namespace("PeekSelection")?;
+                vim.nvim_buf_clear_namespace(buffer, namespace, 0, -1)?;
+                if !search_results.is_empty() {
+                    highlight_selected_line(&vim, buffer, 1)?;
+                }
                 config.on_refresh_callback()?;
                 Ok(())
             })?;
@@ -157,6 +178,18 @@ pub fn create_window(lua: &Lua, config: mlua::Table) -> LuaResult<()> {
     }
 
     Ok(())
+}
+
+fn highlight_selected_line(vim: &Vim, buffer: usize, line: i32) -> LuaResult<()> {
+    let namespace = vim.nvim_create_namespace("PeekSelection")?;
+    let options = crate::vim::ExtMarkOptions {
+        hl_group: Some("PeekSelection".to_string()),
+        hl_eol: Some(true),
+        end_row: Some(line as usize + 1),
+    };
+
+    vim.nvim_buf_clear_namespace(buffer, namespace, 0, -1)?;
+    vim.nvim_buf_set_extmark(buffer, namespace, line as usize, 0, options)
 }
 
 pub fn render(lua: &Lua) -> mlua::Function {

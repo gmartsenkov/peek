@@ -15,5 +15,6 @@ fn peek(lua: &Lua) -> LuaResult<LuaTable> {
 
     exports.set("builtins", builtins)?;
     exports.set("fn", functions)?;
+    exports.set("setup", lua.create_function(peek_lib::setup)?)?;
     Ok(exports)
 }

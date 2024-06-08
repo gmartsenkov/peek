@@ -19,15 +19,13 @@ pub fn select_down(lua: &Lua, _: ()) -> LuaResult<()> {
     if next == limit {
         vim.nvim_buf_set_var(buffer, "peek_offset", LuaValue::Integer((offset + 1).into()))?;
         crate::render(lua).call(())?;
-        vim.nvim_buf_clear_namespace(buffer, 101, 0, -1)?;
-        vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection", cursor_position, 0, -1)?;
+        crate::highlight_selected_line(&vim, buffer, cursor_position)?;
         config.on_refresh_callback()?;
         return Ok(());
     }
 
     vim.nvim_buf_set_var(buffer, "peek_cursor", LuaValue::Integer(next.into()))?;
-    vim.nvim_buf_clear_namespace(buffer, 101, 0, -1)?;
-    vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection", next, 0, -1)?;
+    crate::highlight_selected_line(&vim, buffer, next)?;
     config.on_refresh_callback()?;
 
     Ok(())
@@ -44,15 +42,15 @@ pub fn select_up(lua: &Lua, _: ()) -> LuaResult<()> {
     if cursor_position == 2 && offset > 0 {
         vim.nvim_buf_set_var(buffer, "peek_offset", LuaValue::Integer((offset - 1).into()))?;
         crate::render(lua).call(())?;
-        vim.nvim_buf_clear_namespace(buffer, 101, 0, -1)?;
-        vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection", cursor_position, 0, -1)?;
+
+        crate::highlight_selected_line(&vim, buffer, cursor_position)?;
         config.on_refresh_callback()?;
         return Ok(());
     }
 
     vim.nvim_buf_set_var(buffer, "peek_cursor", LuaValue::Integer(next.into()))?;
-    vim.nvim_buf_clear_namespace(buffer, 101, 0, -1)?;
-    vim.nvim_buf_add_highlight(buffer, 101, "PeekSelection", next, 0, -1)?;
+
+    crate::highlight_selected_line(&vim, buffer, next)?;
     config.on_refresh_callback()?;
 
     Ok(())

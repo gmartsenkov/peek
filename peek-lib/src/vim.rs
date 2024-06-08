@@ -14,6 +14,16 @@ pub struct BufferAttachOptions<'a> {
 }
 
 #[derive(Serialize)]
+pub struct ExtMarkOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hl_group: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hl_eol: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_row: Option<usize>,
+}
+
+#[derive(Serialize)]
 pub enum Mode {
     #[serde(rename = "n")]
     Normal,
@@ -46,12 +56,14 @@ pub struct WindowOptions {
     pub split: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Default)]
 pub struct HighlightOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fg: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bg: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bold: Option<bool>,
 }
 
 impl mlua::UserData for WindowOptions {}
@@ -136,8 +148,28 @@ impl<'a> Vim<'a> {
         func.call::<_, i32>((buffer, namespace, hl_group, line, col_start, col_end))
     }
 
+    pub fn nvim_create_namespace(&self, name: &str) -> LuaResult<usize> {
+        let func: Function = self
+            .api
+            .get("nvim_create_namespace")
+            .expect("can't load nvim_create_namespace");
+
+        func.call(name)
+    }
+
+    pub fn nvim_buf_set_extmark(
+        &self, buffer: usize, namespace: usize, line: usize, col: usize, options: ExtMarkOptions,
+    ) -> LuaResult<()> {
+        let func: Function = self
+            .api
+            .get("nvim_buf_set_extmark")
+            .expect("can't load nvim_buf_set_extmark");
+
+        func.call((buffer, namespace, line, col, self.lua.to_value(&options).unwrap()))
+    }
+
     pub fn nvim_buf_clear_namespace(
-        &self, buffer: usize, namespace: i32, line_start: i32, line_end: i32,
+        &self, buffer: usize, namespace: usize, line_start: i32, line_end: i32,
     ) -> LuaResult<()> {
         let func: Function = self
             .api
