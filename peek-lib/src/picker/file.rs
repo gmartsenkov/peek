@@ -18,7 +18,15 @@ impl<'lua> FromLua<'lua> for File {
 
 pub fn filter(lua: &Lua, prompt: String) -> LuaResult<LuaValue> {
     let mut binding = std::process::Command::new("fd");
-    let cmd = binding.arg("-t").arg("file").output().unwrap().stdout;
+    let cmd = binding
+        .arg("-t")
+        .arg("file")
+        .arg("-H")
+        .arg("-E")
+        .arg(".git")
+        .output()
+        .unwrap()
+        .stdout;
     let fzf_output = crate::search::fzf(prompt, cmd);
 
     let search_results: Vec<File> = fzf_output
